@@ -1,0 +1,23 @@
+{
+	"loadBalancerName": "aws-resources-lb",
+	"region": "ap-south-1",
+	"instancePort": 3000,
+	"healthCheckPath": "/",
+	"certificateName": "",
+	"certificateDomainName": "",
+	"certificateAlternativeNames": [],
+	"tags": [
+		{
+			"key": "Project",
+			"value": "AWS Resources Manager"
+		},
+		{
+			"key": "Environment",
+			"value": "production"
+		},
+		{
+			"key": "Region",
+			"value": "ap-south-1"
+		}
+	]
+}

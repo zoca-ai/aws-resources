@@ -1,0 +1,324 @@
+"use client";
+
+import {
+	BulkMappingActions,
+	MappingColumn,
+	MappingPanel,
+} from "@/components/mapping";
+import { MigrationNav } from "@/components/migration/MigrationNav";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useMapping } from "@/hooks/use-mapping";
+import type { MappingResource } from "@/hooks/use-mapping";
+import { MAPPING_CONFIGS } from "@/lib/constants/mapping";
+import React, { useState, useMemo } from "react";
+
+export default function MappingPage() {
+	const mapping = useMapping();
+	const [selectedResource, setSelectedResource] =
+		useState<MappingResource | null>(null);
+	const [selectedOldResources, setSelectedOldResources] = useState<string[]>(
+		[],
+	);
+	const [selectedNewResources, setSelectedNewResources] = useState<string[]>(
+		[],
+	);
+
+	// Separate filters for each column
+	const [oldFilters, setOldFilters] = useState({
+		search: "",
+		type: "all",
+		region: "all",
+	});
+	const [newFilters, setNewFilters] = useState({
+		search: "",
+		type: "all",
+		region: "all",
+	});
+
+	// Get categorized resources from the hook
+	const { oldResources, newResources } = useMemo(
+		() => ({
+			oldResources: mapping.categorizedResources.old || [],
+			newResources: mapping.categorizedResources.new || [],
+		}),
+		[mapping.categorizedResources],
+	);
+
+	// Filter resources for each column
+	const filteredOldResources = useMemo(() => {
+		return oldResources.filter((resource: MappingResource) => {
+			// Exclude already mapped resources
+			const isAlreadyMapped = resource.mappingStatus === "mapped";
+
+			const matchesSearch =
+				!oldFilters.search ||
+				resource.resourceName
+					?.toLowerCase()
+					.includes(oldFilters.search.toLowerCase()) ||
+				resource.resourceId
+					.toLowerCase()
+					.includes(oldFilters.search.toLowerCase());
+			const matchesType =
+				oldFilters.type === "all" || resource.resourceType === oldFilters.type;
+			const matchesRegion =
+				oldFilters.region === "all" || resource.region === oldFilters.region;
+
+			return !isAlreadyMapped && matchesSearch && matchesType && matchesRegion;
+		});
+	}, [oldResources, oldFilters]);
+
+	const filteredNewResources = useMemo(() => {
+		const filtered = newResources.filter((resource: MappingResource) => {
+			// Exclude already mapped resources (both as source and as target)
+			const isAlreadyMapped = resource.mappingStatus === "mapped";
+
+			const matchesSearch =
+				!newFilters.search ||
+				resource.resourceName
+					?.toLowerCase()
+					.includes(newFilters.search.toLowerCase()) ||
+				resource.resourceId
+					.toLowerCase()
+					.includes(newFilters.search.toLowerCase());
+			const matchesType =
+				newFilters.type === "all" || resource.resourceType === newFilters.type;
+			const matchesRegion =
+				newFilters.region === "all" || resource.region === newFilters.region;
+
+			return !isAlreadyMapped && matchesSearch && matchesType && matchesRegion;
+		});
+
+		// If we have selected old resources, optionally filter by same type for easier mapping
+		if (selectedOldResources.length > 0) {
+			// For now, show all new resources, but we could add a toggle for same-type only
+		}
+
+		return filtered;
+	}, [newResources, newFilters, selectedOldResources]);
+
+	// Handlers
+	const handleResourceViewDetails = (resource: MappingResource) => {
+		setSelectedResource(resource);
+		mapping.setShowMappingDialog(true);
+	};
+
+	const handleSelectOldResource = (resourceId: string) => {
+		setSelectedOldResources((prev) =>
+			prev.includes(resourceId)
+				? prev.filter((id) => id !== resourceId)
+				: [...prev, resourceId],
+		);
+		setSelectedNewResources([]); // Clear new resource selection when switching old resources
+	};
+
+	const handleSelectNewResource = (resourceId: string) => {
+		setSelectedNewResources((prev) =>
+			prev.includes(resourceId)
+				? prev.filter((id) => id !== resourceId)
+				: [...prev, resourceId],
+		);
+	};
+
+	const handleCreateMapping = async (options?: {
+		mappingDirection?: string;
+		mappingType?: string;
+		notes?: string;
+	}) => {
+		if (selectedOldResources.length === 0 || selectedNewResources.length === 0)
+			return;
+
+		try {
+			// Create mappings for each selected old resource to all selected new resources
+			for (const oldResourceId of selectedOldResources) {
+				const oldResource = oldResources.find(
+					(r) => r.resourceId === oldResourceId,
+				);
+				await mapping.handleManyToManyResourceMap(
+					oldResourceId,
+					selectedNewResources,
+					{
+						mappingDirection: options?.mappingDirection || "old_to_new",
+						mappingType: options?.mappingType || "replacement",
+						notes:
+							options?.notes ||
+							`Mapping ${oldResource?.resourceName || oldResourceId} to ${selectedNewResources.length} target resources`,
+					},
+				);
+			}
+
+			// Clear selections
+			setSelectedOldResources([]);
+			setSelectedNewResources([]);
+		} catch (error) {
+			console.error("Failed to create mappings:", error);
+		}
+	};
+
+	const handleClearSelection = () => {
+		setSelectedOldResources([]);
+		setSelectedNewResources([]);
+	};
+
+	const handleCreateMappingFromPanel = async (
+		targetResourceId: string,
+		notes?: string,
+	) => {
+		if (selectedResource) {
+			await mapping.handleResourceMap(
+				selectedResource.resourceId,
+				targetResourceId,
+				notes,
+			);
+			mapping.setShowMappingDialog(false);
+			setSelectedResource(null);
+		}
+	};
+
+	const handleCloseMappingDialog = () => {
+		mapping.setShowMappingDialog(false);
+		setSelectedResource(null);
+	};
+
+	return (
+		<div className="min-h-screen space-y-6">
+			{/* Navigation */}
+			<MigrationNav />
+
+			{/* Column Layout */}
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+				{/* Old Resources Column */}
+				<MappingColumn
+					category="old"
+					title="Legacy Resources"
+					description="Select resources to map to new infrastructure"
+					icon={
+						MAPPING_CONFIGS.find((c) => c.key === "unmapped")?.icon ||
+						(() => null)
+					}
+					count={filteredOldResources.length}
+					color="destructive"
+					searchTerm={oldFilters.search}
+					onSearchChange={(value) =>
+						setOldFilters((prev) => ({ ...prev, search: value }))
+					}
+					typeFilter={oldFilters.type}
+					onTypeFilterChange={(value) =>
+						setOldFilters((prev) => ({ ...prev, type: value }))
+					}
+					regionFilter={oldFilters.region}
+					onRegionFilterChange={(value) =>
+						setOldFilters((prev) => ({ ...prev, region: value }))
+					}
+					uniqueTypes={mapping.uniqueTypes}
+					uniqueRegions={mapping.uniqueRegions}
+					onClearFilters={() =>
+						setOldFilters({ search: "", type: "all", region: "all" })
+					}
+					resources={filteredOldResources}
+					selectedResources={new Set(selectedOldResources)}
+					onResourceSelect={handleSelectOldResource}
+					onResourceMap={mapping.handleResourceMap}
+					onResourceUnmap={mapping.handleResourceUnmap}
+					suggestedMappings={mapping.suggestedMappings}
+					onViewDetails={handleResourceViewDetails}
+					onSelectAll={() => {
+						if (filteredOldResources.length > 0) {
+							setSelectedOldResources(
+								filteredOldResources.map((r: MappingResource) => r.resourceId),
+							);
+						}
+					}}
+					onDeselectAll={() => setSelectedOldResources([])}
+					selectedOldResources={selectedOldResources}
+					onSelectOldResource={(resource: MappingResource) =>
+						handleSelectOldResource(resource.resourceId)
+					}
+				/>
+
+				{/* New Resources Column */}
+				<MappingColumn
+					category="new"
+					title="Modern Resources"
+					description={
+						selectedOldResources.length > 0
+							? `Select targets for ${selectedOldResources.length} selected resource${selectedOldResources.length > 1 ? "s" : ""}`
+							: "Select old resources first to see mapping targets"
+					}
+					icon={
+						MAPPING_CONFIGS.find((c) => c.key === "mapped")?.icon ||
+						(() => null)
+					}
+					count={filteredNewResources.length}
+					color="primary"
+					searchTerm={newFilters.search}
+					onSearchChange={(value) =>
+						setNewFilters((prev) => ({ ...prev, search: value }))
+					}
+					typeFilter={newFilters.type}
+					onTypeFilterChange={(value) =>
+						setNewFilters((prev) => ({ ...prev, type: value }))
+					}
+					regionFilter={newFilters.region}
+					onRegionFilterChange={(value) =>
+						setNewFilters((prev) => ({ ...prev, region: value }))
+					}
+					uniqueTypes={mapping.uniqueTypes}
+					uniqueRegions={mapping.uniqueRegions}
+					onClearFilters={() =>
+						setNewFilters({ search: "", type: "all", region: "all" })
+					}
+					resources={filteredNewResources}
+					selectedResources={new Set(selectedNewResources)}
+					onResourceSelect={handleSelectNewResource}
+					onResourceMap={mapping.handleResourceMap}
+					onResourceUnmap={mapping.handleResourceUnmap}
+					suggestedMappings={mapping.suggestedMappings}
+					onViewDetails={handleResourceViewDetails}
+					onSelectAll={() => {
+						if (
+							selectedOldResources.length > 0 &&
+							filteredNewResources.length > 0
+						) {
+							setSelectedNewResources(
+								filteredNewResources.map((r: MappingResource) => r.resourceId),
+							);
+						}
+					}}
+					onDeselectAll={() => setSelectedNewResources([])}
+					selectedOldResources={selectedOldResources}
+				/>
+			</div>
+
+			{/* Bulk Mapping Actions */}
+			<BulkMappingActions
+				selectedOldResources={selectedOldResources}
+				selectedNewResources={selectedNewResources}
+				oldResources={filteredOldResources}
+				newResources={filteredNewResources}
+				onCreateMapping={handleCreateMapping}
+				onClearSelection={handleClearSelection}
+				loading={mapping.loading.mappings}
+			/>
+
+			{/* Mapping Dialog */}
+			<Dialog
+				open={mapping.globalState.showMappingDialog}
+				onOpenChange={handleCloseMappingDialog}
+			>
+				<DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden">
+					<MappingPanel
+						resource={selectedResource}
+						suggestedMappings={
+							selectedResource
+								? mapping.suggestedMappings[selectedResource.resourceId] || []
+								: []
+						}
+						onMap={handleCreateMappingFromPanel}
+						onClose={handleCloseMappingDialog}
+						loading={mapping.loading.mappings}
+					/>
+				</DialogContent>
+			</Dialog>
+		</div>
+	);
+}
