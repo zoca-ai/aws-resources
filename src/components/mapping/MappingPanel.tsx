@@ -42,7 +42,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
   onClose,
   loading = false,
 }) => {
-  const [selectedTargetId, setSelectedTargetId] = useState<string>("");
+  const [selectedTargetIds, setSelectedTargetIds] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -56,11 +56,9 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
   );
 
   const handleConfirm = () => {
-    if (selectedTargetId) {
-      onMap(selectedTargetId, notes.trim() || undefined);
-      setSelectedTargetId("");
-      setNotes("");
-    }
+    onMap(Array.from(selectedTargetIds), notes.trim() || undefined);
+    setSelectedTargetIds(new Set());
+    setNotes("");
   };
 
   if (!resource) {
@@ -144,8 +142,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
                 {filteredSuggestions.length > 0 ? (
                   filteredSuggestions.map((suggestion) => {
                     const confidence = Math.floor(Math.random() * 30) + 70; // Placeholder confidence
-                    const isSelected =
-                      selectedTargetId === suggestion.resourceId;
+                    const isSelected = selectedTargetIds.has(suggestion.resourceId);
 
                     return (
                       <div
@@ -156,9 +153,15 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
                             ? "border border-primary bg-primary/10"
                             : "border border-transparent hover:bg-accent",
                         )}
-                        onClick={() =>
-                          setSelectedTargetId(suggestion.resourceId)
-                        }
+                        onClick={() => {
+                          const newSelected = new Set(selectedTargetIds);
+                          if (isSelected) {
+                            newSelected.delete(suggestion.resourceId);
+                          } else {
+                            newSelected.add(suggestion.resourceId);
+                          }
+                          setSelectedTargetIds(newSelected);
+                        }}
                       >
                         <span className="text-lg">
                           {getResourceIcon(suggestion.resourceType)}
@@ -223,7 +226,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
         </div>
 
         {/* Mapping Preview */}
-        {selectedTargetId && (
+        {selectedTargetIds.size > 0 && (
           <div className="rounded-lg border border-green-200 bg-green-50 p-3">
             <div className="mb-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -244,26 +247,33 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
               <span
                 className="max-w-[120px] truncate"
                 title={
-                  filteredSuggestions.find(
-                    (s) => s.resourceId === selectedTargetId,
-                  )?.resourceName ||
-                  filteredSuggestions.find(
-                    (s) => s.resourceId === selectedTargetId,
-                  )?.resourceId
+                  selectedTargetIds.size === 1
+                    ? filteredSuggestions.find(
+                        (s) => s.resourceId === Array.from(selectedTargetIds)[0],
+                      )?.resourceName ||
+                      filteredSuggestions.find(
+                        (s) => s.resourceId === Array.from(selectedTargetIds)[0],
+                      )?.resourceId
+                    : `${selectedTargetIds.size} selected targets`
                 }
               >
                 {(() => {
-                  const targetName =
-                    filteredSuggestions.find(
-                      (s) => s.resourceId === selectedTargetId,
-                    )?.resourceName ||
-                    filteredSuggestions.find(
-                      (s) => s.resourceId === selectedTargetId,
-                    )?.resourceId ||
-                    "";
-                  return targetName.length > 15
-                    ? `${targetName.substring(0, 15)}...`
-                    : targetName;
+                  if (selectedTargetIds.size === 1) {
+                    const firstTargetId = Array.from(selectedTargetIds)[0];
+                    const targetName =
+                      filteredSuggestions.find(
+                        (s) => s.resourceId === firstTargetId,
+                      )?.resourceName ||
+                      filteredSuggestions.find(
+                        (s) => s.resourceId === firstTargetId,
+                      )?.resourceId ||
+                      "";
+                    return targetName.length > 15
+                      ? `${targetName.substring(0, 15)}...`
+                      : targetName;
+                  } else {
+                    return `${selectedTargetIds.size} targets`;
+                  }
                 })()}
               </span>
             </div>
@@ -296,11 +306,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={!selectedTargetId || loading}
-            className="flex items-center gap-2"
-          >
+          <Button onClick={handleConfirm} className="flex items-center gap-2">
             <Link className="h-4 w-4" />
             Create Mapping
           </Button>

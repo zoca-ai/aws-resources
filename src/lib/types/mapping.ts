@@ -116,7 +116,7 @@ export interface PendingMappingsProps {
 export interface MappingPanelProps {
 	resource: Resource | null;
 	suggestedMappings: Resource[];
-	onMap: (targetResourceId: string, notes?: string) => void;
+	onMap: (targetResourceIds: string[], notes?: string) => void;
 	onClose: () => void;
 	loading?: boolean;
 }
@@ -126,7 +126,7 @@ export interface MappingDialogProps {
 	onClose: () => void;
 	resource: Resource | null;
 	suggestedMappings: Resource[];
-	onConfirm: (targetResourceId: string, notes?: string) => void;
+	onConfirm: (targetResourceIds: string[], notes?: string) => void;
 	loading?: boolean;
 }
 

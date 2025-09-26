@@ -110,6 +110,11 @@ export default function MappingPage() {
 
   // Smart pagination - preload next pages based on user interaction patterns
   const smartPreload = useCallback(() => {
+    // Only proceed if mapping functions are available
+    if (!mapping.fetchNextPage || !mapping.hasNextPage || !mapping.isFetchingNextPage) {
+      return;
+    }
+
     // Preload more old resources when user has selected any old resources
     if (
       selectedOldResources.length > 0 &&
@@ -189,22 +194,45 @@ export default function MappingPage() {
       return;
 
     try {
-      // Create mappings for each selected old resource to all selected new resources
-      for (const oldResourceId of selectedOldResources) {
-        const oldResource = oldResources.find(
-          (r) => r.resourceId === oldResourceId,
-        );
+      // Handle different mapping scenarios
+      if (selectedOldResources.length === 1) {
+        // Single old resource to multiple new resources (1-to-many)
+        const sourceResourceId = selectedOldResources[0];
+        if (!sourceResourceId) return;
+
         await mapping.handleManyToManyResourceMap(
-          oldResourceId,
+          sourceResourceId,
           selectedNewResources,
           {
             mappingDirection: options?.mappingDirection || "old_to_new",
             mappingType: options?.mappingType || "replacement",
             notes:
               options?.notes ||
-              `Mapping ${oldResource?.resourceName || oldResourceId} to ${selectedNewResources.length} target resources`,
+              `Mapping 1 resource to ${selectedNewResources.length} target resources`,
           },
         );
+      } else {
+        // Multiple old resources to multiple new resources (many-to-many)
+        // Create individual mappings for each old resource to all selected new resources
+        const mappingPromises = selectedOldResources.map(async (oldResourceId) => {
+          const oldResource = oldResources.find(
+            (r) => r.resourceId === oldResourceId,
+          );
+          return mapping.handleManyToManyResourceMap(
+            oldResourceId,
+            selectedNewResources,
+            {
+              mappingDirection: options?.mappingDirection || "old_to_new",
+              mappingType: options?.mappingType || "replacement",
+              notes:
+                options?.notes ||
+                `Many-to-many mapping: ${oldResource?.resourceName || oldResourceId} to ${selectedNewResources.length} target resources`,
+            },
+          );
+        });
+
+        // Execute all mappings in parallel for better performance
+        await Promise.all(mappingPromises);
       }
 
       // Clear selections
@@ -221,15 +249,29 @@ export default function MappingPage() {
   };
 
   const handleCreateMappingFromPanel = async (
-    targetResourceId: string,
+    targetResourceIds: string[],
     notes?: string,
   ) => {
-    if (selectedResource) {
-      await mapping.handleResourceMap(
-        selectedResource.resourceId,
-        targetResourceId,
-        notes,
-      );
+    if (selectedResource && targetResourceIds.length > 0) {
+      if (targetResourceIds.length === 1) {
+        // Single mapping
+        await mapping.handleResourceMap(
+          selectedResource.resourceId,
+          targetResourceIds[0],
+          notes,
+        );
+      } else {
+        // Many-to-many mapping
+        await mapping.handleManyToManyResourceMap(
+          selectedResource.resourceId,
+          targetResourceIds,
+          {
+            mappingDirection: "old_to_new",
+            mappingType: "replacement",
+            notes: notes || `Mapped to ${targetResourceIds.length} target resources`,
+          },
+        );
+      }
       mapping.setShowMappingDialog(false);
       setSelectedResource(null);
     }
@@ -299,10 +341,6 @@ export default function MappingPage() {
             }
           }}
           onDeselectAll={() => setSelectedOldResources([])}
-          selectedOldResources={selectedOldResources}
-          onSelectOldResource={(resource: MappingResource) =>
-            handleSelectOldResource(resource.resourceId)
-          }
         />
 
         {/* New Resources Column */}
@@ -364,7 +402,6 @@ export default function MappingPage() {
             }
           }}
           onDeselectAll={() => setSelectedNewResources([])}
-          selectedOldResources={selectedOldResources}
         />
       </div>
 
@@ -381,7 +418,7 @@ export default function MappingPage() {
 
       {/* Null Mapping Actions */}
       {selectedOldResources.length > 0 && selectedNewResources.length === 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+        <div className="fixed bottom-60 left-1/2 transform -translate-x-1/2 z-40">
           <div className="bg-background border rounded-lg shadow-lg p-4 flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
               {selectedOldResources.length} old resource

@@ -12,6 +12,9 @@ import {
 	LayoutDashboard,
 	LogOut,
 	Server,
+	Layers,
+	Route,
+	Settings,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -44,10 +47,22 @@ export function AppLayout({ children }: AppLayoutProps) {
 			active: pathname.startsWith("/resources"),
 		},
 		{
-			title: "Migration",
+			title: "Categorize",
 			href: "/migration/categorize",
-			icon: <GitBranch className="h-4 w-4" />,
-			active: pathname.startsWith("/migration"),
+			icon: <Layers className="h-4 w-4" />,
+			active: pathname === "/migration/categorize",
+		},
+		{
+			title: "Map Resources",
+			href: "/migration/map",
+			icon: <Route className="h-4 w-4" />,
+			active: pathname === "/migration/map",
+		},
+		{
+			title: "Manage Mappings",
+			href: "/migration/mappings",
+			icon: <Settings className="h-4 w-4" />,
+			active: pathname === "/migration/mappings",
 		},
 	];
 
