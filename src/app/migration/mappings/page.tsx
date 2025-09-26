@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type RouterOutputs, api } from "@/trpc/react";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 
 // Type for migration mapping from tRPC
@@ -84,10 +84,6 @@ export default function MappingsListPage() {
     { limit: 50 }, // Smaller chunks for better infinite scroll performance
     {
       getNextPageParam: (lastPage) => {
-        console.log("getNextPageParam called with:", {
-          nextCursor: lastPage.nextCursor,
-          mappingsCount: lastPage.mappings.length,
-        });
         return lastPage.nextCursor;
       },
       staleTime: 1 * 60 * 1000,
@@ -141,18 +137,8 @@ export default function MappingsListPage() {
 
   // Flatten mappings from all pages
   const mappings = useMemo(() => {
-    const flatMappings =
-      mappingsData?.pages.flatMap((page) => page.mappings) || [];
-    console.log("Infinite Query Debug:", {
-      totalPages: mappingsData?.pages?.length || 0,
-      totalMappings: flatMappings.length,
-      hasNextPage,
-      isFetchingNextPage,
-      lastPageCursor:
-        mappingsData?.pages?.[mappingsData.pages.length - 1]?.nextCursor,
-    });
-    return flatMappings;
-  }, [mappingsData, hasNextPage, isFetchingNextPage]);
+    return mappingsData?.pages.flatMap((page) => page.mappings) || [];
+  }, [mappingsData]);
 
   // Filters and search
   const [search, setSearch] = useState("");
@@ -238,42 +224,44 @@ export default function MappingsListPage() {
 
   // Apply filters
   const filteredMappings = useMemo(() => {
-    console.log("Filtering mappings:", {
-      totalMappings: mappings.length,
-      sampleMapping: mappings[0],
-      filters: { search, resourceTypeFilter, regionFilter },
-    });
+    if (!mappings.length) return [];
 
-    let filtered = mappings;
+    const searchLower = search.toLowerCase();
 
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(
-        (mapping: any) =>
+    return mappings.filter((mapping: any) => {
+      // Search filter
+      if (
+        search &&
+        !(
           mapping.sourceResourceName?.toLowerCase().includes(searchLower) ||
           mapping.sourceResourceId?.toLowerCase().includes(searchLower) ||
           mapping.sourceResourceType?.toLowerCase().includes(searchLower) ||
-          mapping.notes?.toLowerCase().includes(searchLower),
-      );
-      console.log("After search filter:", filtered.length);
-    }
+          mapping.notes?.toLowerCase().includes(searchLower)
+        )
+      ) {
+        return false;
+      }
 
-    if (resourceTypeFilter && resourceTypeFilter !== "all") {
-      filtered = filtered.filter(
-        (mapping: any) => mapping.sourceResourceType === resourceTypeFilter,
-      );
-      console.log("After resource type filter:", filtered.length);
-    }
+      // Resource type filter
+      if (
+        resourceTypeFilter &&
+        resourceTypeFilter !== "all" &&
+        mapping.sourceResourceType !== resourceTypeFilter
+      ) {
+        return false;
+      }
 
-    if (regionFilter && regionFilter !== "all") {
-      filtered = filtered.filter(
-        (mapping: any) => mapping.sourceRegion === regionFilter,
-      );
-      console.log("After region filter:", filtered.length);
-    }
+      // Region filter
+      if (
+        regionFilter &&
+        regionFilter !== "all" &&
+        mapping.sourceRegion !== regionFilter
+      ) {
+        return false;
+      }
 
-    console.log("Final filtered mappings:", filtered.length);
-    return filtered;
+      return true;
+    });
   }, [
     search,
     mappingTypeFilter,
@@ -293,8 +281,6 @@ export default function MappingsListPage() {
       regions: regionsData?.map((item) => item.region).filter(Boolean) ?? [],
     };
   }, [resourceTypesData, regionsData]);
-
-  console.log(mappings);
 
   return (
     <div className="h-screen flex flex-col">
@@ -667,10 +653,6 @@ export default function MappingsListPage() {
                   </div>
                 )}
                 onLoadMore={() => {
-                  console.log("VirtualScroll onLoadMore triggered", {
-                    hasNextPage,
-                    isFetchingNextPage,
-                  });
                   if (hasNextPage && !isFetchingNextPage) {
                     fetchNextPage();
                   }
