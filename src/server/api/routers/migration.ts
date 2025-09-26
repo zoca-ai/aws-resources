@@ -150,6 +150,7 @@ export const migrationRouter = createTRPCRouter({
 		)
 		.query(async ({ input }) => {
 			const { status, category, priority, cursor, limit } = input;
+			console.log('mappingsInfinite API called with:', { status, category, priority, cursor, limit });
 
 			// Build the query conditions
 			const conditions = [];
@@ -166,16 +167,25 @@ export const migrationRouter = createTRPCRouter({
 			// Apply cursor pagination
 			if (cursor) {
 				const [createdAt, id] = cursor.split('_');
+				console.log('Parsing cursor:', { cursor, createdAt, id });
 				if (createdAt && id) {
-					conditions.push(
-						or(
-							lt(migrationMappings.createdAt, new Date(createdAt)),
-							and(
-								eq(migrationMappings.createdAt, new Date(createdAt)),
-								lt(migrationMappings.id, parseInt(id))
+					const parsedId = parseInt(id);
+					const parsedDate = new Date(createdAt);
+					console.log('Parsed cursor values:', { parsedId, parsedDate, isValidDate: !isNaN(parsedDate.getTime()) });
+
+					if (!isNaN(parsedId) && !isNaN(parsedDate.getTime())) {
+						conditions.push(
+							or(
+								lt(migrationMappings.createdAt, parsedDate),
+								and(
+									eq(migrationMappings.createdAt, parsedDate),
+									lt(migrationMappings.id, parsedId)
+								)
 							)
-						)
-					);
+						);
+					} else {
+						console.error('Invalid cursor values:', { parsedId, parsedDate });
+					}
 				}
 			}
 
@@ -185,9 +195,16 @@ export const migrationRouter = createTRPCRouter({
 				.from(migrationMappings)
 				.orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
 
-			const mappingsList = conditions.length > 0
-				? await baseQuery.where(and(...conditions)).limit(limit + 1)
-				: await baseQuery.limit(limit + 1); // Fetch one extra to determine if there's a next page
+			let mappingsList;
+			try {
+				mappingsList = conditions.length > 0
+					? await baseQuery.where(and(...conditions)).limit(limit + 1)
+					: await baseQuery.limit(limit + 1); // Fetch one extra to determine if there's a next page
+				console.log('Query executed successfully, got', mappingsList.length, 'results');
+			} catch (error) {
+				console.error('Database query error:', error);
+				throw error;
+			}
 
 			// Determine if there's a next page
 			const hasNextPage = mappingsList.length > limit;

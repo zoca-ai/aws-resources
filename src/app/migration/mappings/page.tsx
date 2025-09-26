@@ -83,7 +83,13 @@ export default function MappingsListPage() {
   } = api.migration.mappingsInfinite.useInfiniteQuery(
     { limit: 50 }, // Smaller chunks for better infinite scroll performance
     {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      getNextPageParam: (lastPage) => {
+        console.log("getNextPageParam called with:", {
+          nextCursor: lastPage.nextCursor,
+          mappingsCount: lastPage.mappings.length,
+        });
+        return lastPage.nextCursor;
+      },
       staleTime: 1 * 60 * 1000,
       refetchOnWindowFocus: true,
     },
@@ -118,34 +124,16 @@ export default function MappingsListPage() {
   });
 
   const deleteMapping = api.migration.deleteMapping.useMutation({
-    onMutate: async (variables) => {
-      // Optimistically remove from cache
-      await utils.migration.mappingsInfinite.cancel();
-
-      const previousData = utils.migration.mappingsInfinite.getData({
-        limit: 50,
-      });
-
-      utils.migration.mappingsInfinite.setData({ limit: 50 }, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          mappings: old.mappings.filter((m) => m.id !== variables.id),
-        };
-      });
-
-      return { previousData };
+    onMutate: async () => {
+      toast.loading("Deleting mapping...", { id: "delete-mapping" });
     },
-    onError: (_error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousData) {
-        utils.migration.mappingsInfinite.setData(
-          { limit: 50 },
-          context.previousData,
-        );
-      }
+    onError: (error) => {
+      toast.error(`Failed to delete mapping: ${error.message}`, {
+        id: "delete-mapping",
+      });
     },
     onSuccess: () => {
+      toast.success("Mapping deleted successfully", { id: "delete-mapping" });
       // Invalidate to get fresh data
       utils.migration.mappingsInfinite.invalidate();
     },
@@ -153,8 +141,18 @@ export default function MappingsListPage() {
 
   // Flatten mappings from all pages
   const mappings = useMemo(() => {
-    return mappingsData?.pages.flatMap((page) => page.mappings) || [];
-  }, [mappingsData]);
+    const flatMappings =
+      mappingsData?.pages.flatMap((page) => page.mappings) || [];
+    console.log("Infinite Query Debug:", {
+      totalPages: mappingsData?.pages?.length || 0,
+      totalMappings: flatMappings.length,
+      hasNextPage,
+      isFetchingNextPage,
+      lastPageCursor:
+        mappingsData?.pages?.[mappingsData.pages.length - 1]?.nextCursor,
+    });
+    return flatMappings;
+  }, [mappingsData, hasNextPage, isFetchingNextPage]);
 
   // Filters and search
   const [search, setSearch] = useState("");
@@ -240,6 +238,12 @@ export default function MappingsListPage() {
 
   // Apply filters
   const filteredMappings = useMemo(() => {
+    console.log("Filtering mappings:", {
+      totalMappings: mappings.length,
+      sampleMapping: mappings[0],
+      filters: { search, resourceTypeFilter, regionFilter },
+    });
+
     let filtered = mappings;
 
     if (search) {
@@ -251,22 +255,33 @@ export default function MappingsListPage() {
           mapping.sourceResourceType?.toLowerCase().includes(searchLower) ||
           mapping.notes?.toLowerCase().includes(searchLower),
       );
+      console.log("After search filter:", filtered.length);
     }
 
     if (resourceTypeFilter && resourceTypeFilter !== "all") {
       filtered = filtered.filter(
         (mapping: any) => mapping.sourceResourceType === resourceTypeFilter,
       );
+      console.log("After resource type filter:", filtered.length);
     }
 
     if (regionFilter && regionFilter !== "all") {
       filtered = filtered.filter(
         (mapping: any) => mapping.sourceRegion === regionFilter,
       );
+      console.log("After region filter:", filtered.length);
     }
 
+    console.log("Final filtered mappings:", filtered.length);
     return filtered;
-  }, [search, mappingTypeFilter, resourceTypeFilter, regionFilter, dateFilter]);
+  }, [
+    search,
+    mappingTypeFilter,
+    resourceTypeFilter,
+    regionFilter,
+    dateFilter,
+    mappings,
+  ]);
 
   // Statistics
 
@@ -454,16 +469,6 @@ export default function MappingsListPage() {
 
                     {/* Target Resources - Column 3 (Flexible) */}
                     <div className="min-w-0">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {mapping.priority || "medium"} priority
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {(mapping as any).targetResources?.length || 0}{" "}
-                          targets
-                        </Badge>
-                      </div>
-
                       {/* Target Resources List */}
                       <div className="space-y-2">
                         {(mapping as any).targetResources ? (
@@ -661,7 +666,15 @@ export default function MappingsListPage() {
                     )}
                   </div>
                 )}
-                onLoadMore={fetchNextPage}
+                onLoadMore={() => {
+                  console.log("VirtualScroll onLoadMore triggered", {
+                    hasNextPage,
+                    isFetchingNextPage,
+                  });
+                  if (hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                  }
+                }}
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
               />
