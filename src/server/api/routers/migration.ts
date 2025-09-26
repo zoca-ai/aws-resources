@@ -296,7 +296,7 @@ export const migrationRouter = createTRPCRouter({
   createBulkManyToManyMapping: publicProcedure
     .input(
       z.object({
-        sourceResourceIds: z.array(z.string()).min(1),
+        sourceResourceIds: z.array(z.string()).default([]),
         targetResourceIds: z.array(z.string()).default([]),
         mappingDirection: z
           .enum(MAPPING_DIRECTION_VALUES as [string, ...string[]])
@@ -324,14 +324,22 @@ export const migrationRouter = createTRPCRouter({
         category,
       } = input;
 
-      // Get source resource details
-      const sourceResources = await db
-        .select()
-        .from(resources)
-        .where(inArray(resources.resourceId, sourceResourceIds));
+      // Validate that at least one of the arrays has elements
+      if (sourceResourceIds.length === 0 && targetResourceIds.length === 0) {
+        throw new Error("At least one of sourceResourceIds or targetResourceIds must be provided");
+      }
 
-      if (sourceResources.length !== sourceResourceIds.length) {
-        throw new Error("One or more source resources not found");
+      // Get source resource details (skip if no sources for "Map from Nothing")
+      let sourceResources: any[] = [];
+      if (sourceResourceIds.length > 0) {
+        sourceResources = await db
+          .select()
+          .from(resources)
+          .where(inArray(resources.resourceId, sourceResourceIds));
+
+        if (sourceResources.length !== sourceResourceIds.length) {
+          throw new Error("One or more source resources not found");
+        }
       }
 
       // Get target resource details (skip if no targets for "Map to Nothing")
@@ -384,20 +392,22 @@ export const migrationRouter = createTRPCRouter({
           throw new Error("Failed to create mapping group");
         }
 
-        // Create source mappings
-        const sourceMappingsData = sourceResources.map((resource) => ({
-          mappingId,
-          resourceId: resource.resourceId,
-          resourceType: resource.resourceType,
-          resourceName: resource.resourceName,
-          resourceArn: resource.resourceArn,
-          region: resource.region,
-          awsAccountId: resource.awsAccountId,
-          category: resource.migrationCategory || "uncategorized",
-          notes: `Source resource in many-to-many mapping`,
-        }));
+        // Create source mappings (only if there are sources)
+        if (sourceResources.length > 0) {
+          const sourceMappingsData = sourceResources.map((resource) => ({
+            mappingId,
+            resourceId: resource.resourceId,
+            resourceType: resource.resourceType,
+            resourceName: resource.resourceName,
+            resourceArn: resource.resourceArn,
+            region: resource.region,
+            awsAccountId: resource.awsAccountId,
+            category: resource.migrationCategory || "uncategorized",
+            notes: `Source resource in many-to-many mapping`,
+          }));
 
-        await tx.insert(migrationMappingSources).values(sourceMappingsData);
+          await tx.insert(migrationMappingSources).values(sourceMappingsData);
+        }
 
         // Create target mappings (only if there are targets)
         if (targetResources.length > 0) {
