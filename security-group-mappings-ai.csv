@@ -1,0 +1,25 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes,confidence_score
+sg-xxxxx,default,sg-xxxxx,default,pending,Default security group migration,100
+sg-xxxxx,production-servers-alb-20250623142532386000000001,sg-xxxxx,lb-security-group-2025091112162042760000000f,pending,Production ALB security group to new LB security group,90
+sg-xxxxx,production-servers-alb-20250623142532386800000002,sg-xxxxx,lb-security-group-2025091112162042760000000f,pending,Production ALB security group to new LB security group,90
+sg-xxxxx,production-servers-ecs-20250623142538856800000003,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Production ECS security group to new application security group,90
+sg-xxxxx,zoca-app-env-security-group,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Zoca app environment to new application security group,85
+sg-xxxxx,zoca-dev-staging-app-security-group,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Zoca dev staging app to new application security group,85
+sg-xxxxx,zoca-staging-api-server-env-security-group,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Zoca staging API server to new application security group,85
+sg-xxxxx,zocaWebsite-env,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Zoca website environment to new application security group,80
+sg-xxxxx,rds-ec2-security-group,sg-xxxxx,rds-security-group-20250911121719283900000018,pending,RDS EC2 security group to new RDS security group,90
+sg-xxxxx,RDS Security group,sg-xxxxx,rds-security-group-20250911121719283900000018,pending,RDS security group to new RDS security group,90
+sg-xxxxx,lambda-rds-1,sg-xxxxx,rds-security-group-20250911121719283900000018,pending,Lambda RDS security group to new RDS security group,85
+sg-xxxxx,lambda-rds-2,sg-xxxxx,rds-security-group-20250911121719283900000018,pending,Lambda RDS security group to new RDS security group,85
+sg-xxxxx,rds-lambda-2,sg-xxxxx,rds-security-group-20250911121719283900000018,pending,RDS Lambda security group to new RDS security group,85
+sg-xxxxx,cloudshell-elasticache-redis-provisioned-prod,sg-xxxxx,redis-security-group-20250911121719283900000019,pending,CloudShell ElastiCache Redis to new Redis security group,90
+sg-xxxxx,elasticache-cloudshell-redis-provisioned-prod,sg-xxxxx,redis-security-group-20250911121719283900000019,pending,ElastiCache CloudShell Redis to new Redis security group,90
+sg-xxxxx,public-security-group-efs,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Public EFS security group to new application security group,75
+sg-xxxxx,awseb-e-gyj67phqd2-stack-AWSEBLoadBalancerSecurityGroup-WE1JQAjJw78A,sg-xxxxx,lb-security-group-2025091112162042760000000f,pending,Elastic Beanstalk LB security group to new LB security group,70
+sg-xxxxx,awseb-e-madfppqgnq-stack-AWSEBLoadBalancerSecurityGroup-Rcs0A0yEhYbT,sg-xxxxx,lb-security-group-2025091112162042760000000f,pending,Elastic Beanstalk LB security group to new LB security group,70
+sg-xxxxx,awseb-e-gyj67phqd2-stack-AWSEBSecurityGroup-paGPh35WroDF,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Elastic Beanstalk app security group to new application security group,70
+sg-xxxxx,awseb-e-nvejrcfq66-stack-AWSEBSecurityGroup-jKljUEdH5cFj,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Elastic Beanstalk app security group to new application security group,70
+sg-xxxxx,awseb-e-r3cciwddbv-stack-AWSEBSecurityGroup-moBKUGloLxuF,sg-xxxxx,application-security-group-20250911121709519200000016,pending,Elastic Beanstalk app security group to new application security group,70
+sg-xxxxx,GuardDutyManagedSecurityGroup-vpc-039db2f9cfac8d2c3,sg-xxxxx,,,,AWS managed GuardDuty security group - no migration needed,0
+sg-xxxxx,GuardDutyManagedSecurityGroup-vpc-0f24fecf11112a09b,sg-xxxxx,,,,AWS managed GuardDuty security group - no migration needed,0
+sg-xxxxx,OpenVPN Access Server / Self-Hosted VPN (BYOL)-2.13.1-AutogenByAWSMP--1,sg-xxxxx,retool-security-group-20250924182835495000000003,pending,OpenVPN security group to Retool security group for admin access,60

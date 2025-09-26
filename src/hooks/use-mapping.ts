@@ -116,6 +116,11 @@ export interface UseMapping {
 		targetResourceIds: string[],
 		options?: any,
 	) => Promise<any>;
+	handleBulkManyToManyResourceMap: (
+		sourceResourceIds: string[],
+		targetResourceIds: string[],
+		options?: any,
+	) => Promise<any>;
 	handleResourceUnmap: (resourceId: string) => Promise<void>;
 	handleMapToNothing: (
 		resourceId: string,
@@ -234,6 +239,22 @@ export function useMapping(): UseMapping {
 	// Get utils for optimistic updates
 	const utils = api.useUtils();
 
+	// Mutation for bulk many-to-many mapping
+	const createBulkManyToManyMapping = api.migration.createBulkManyToManyMapping.useMutation({
+		onMutate: async (variables) => {
+			toast.loading('Creating bulk many-to-many mappings...', { id: 'create-bulk-mapping' });
+		},
+		onError: (error) => {
+			toast.error(`Failed to create bulk mappings: ${error.message}`, {
+				id: 'create-bulk-mapping',
+			});
+		},
+		onSuccess: (data) => {
+			toast.success(`Successfully created many-to-many mapping: ${data.sourceCount} sources → ${data.targetCount} targets`, { id: 'create-bulk-mapping' });
+			utils.migration.mappingsInfinite.invalidate();
+		},
+	});
+
 	// Mutations with optimistic updates
 	const updateMapping = api.migration.updateMapping.useMutation({
 		onMutate: async () => {
@@ -309,7 +330,7 @@ export function useMapping(): UseMapping {
 			if (!resourceList) return [];
 
 			const mappedAsSourceIds = new Set(
-				mappings.map((m) => m.sourceResourceId),
+				mappings.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
 			);
 			// Also track resources that are mapped as targets
 			const mappedAsTargetIds = new Set(
@@ -330,16 +351,16 @@ export function useMapping(): UseMapping {
 			const deprecatedResourceIds = new Set(
 				mappings
 					.filter((m) => (m as any).mappingType === "deprecation")
-					.map((m) => m.sourceResourceId),
+					.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
 			);
 			const removalResourceIds = new Set(
 				mappings
 					.filter((m) => (m as any).mappingType === "removal")
-					.map((m) => m.sourceResourceId),
+					.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
 			);
 			const newlyAddedResourceIds = new Set(
 				mappings
-					.filter((m) => m.sourceResourceId === "NEW_RESOURCE")
+					.filter((m) => m.sourceResources?.some(s => s.resourceId === "NEW_RESOURCE"))
 					.flatMap(
 						(m) =>
 							(m as any).targetResources?.map((t: any) => t.resourceId) || [],
@@ -361,16 +382,16 @@ export function useMapping(): UseMapping {
 										? "mapped"
 										: "unmapped",
 					mappedToResourceId: mappings
-						.find((m) => m.sourceResourceId === resource.resourceId)
+						.find((m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId))
 						?.id?.toString(),
 					mappedToResourceName: mappings.find(
-						(m) => m.sourceResourceId === resource.resourceId,
-					)?.sourceResourceName || undefined,
+						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
+					)?.sourceResources?.[0]?.resourceName || undefined,
 					mappingNotes: mappings.find(
-						(m) => m.sourceResourceId === resource.resourceId,
+						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
 					)?.notes || undefined,
 					mappedAt: mappings.find(
-						(m) => m.sourceResourceId === resource.resourceId,
+						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
 					)?.createdAt?.toISOString(),
 					mappedBy: "user", // Default for now
 					confidence: 90, // Default confidence
@@ -631,6 +652,42 @@ export function useMapping(): UseMapping {
 		[createMapping, refetchAll],
 	);
 
+	const handleBulkManyToManyResourceMap = useCallback(
+		async (
+			sourceResourceIds: string[],
+			targetResourceIds: string[],
+			options?: {
+				mappingDirection?: string;
+				mappingType?: string;
+				notes?: string;
+			},
+		) => {
+			try {
+				const result = await createBulkManyToManyMapping.mutateAsync({
+					sourceResourceIds,
+					targetResourceIds,
+					mappingDirection: options?.mappingDirection || "old_to_new",
+					mappingType: options?.mappingType || "replacement",
+					notes:
+						options?.notes ||
+						`Bulk mapped ${sourceResourceIds.length} source resources to ${targetResourceIds.length} target resources`,
+					priority: "medium",
+					category: "undecided",
+				});
+
+				toast.success(
+					`Successfully created many-to-many mapping: ${result.sourceCount} sources → ${result.targetCount} targets`,
+				);
+				refetchAll();
+				return result;
+			} catch (error) {
+				console.error("Failed to create bulk many-to-many mappings:", error);
+				toast.error("Failed to create bulk many-to-many mappings");
+			}
+		},
+		[createBulkManyToManyMapping, refetchAll],
+	);
+
 	const handleResourceUnmap = useCallback(async (resourceId: string) => {
 		try {
 			// TODO: Implement unmap functionality when API is available
@@ -852,6 +909,7 @@ export function useMapping(): UseMapping {
 		handleResourceMap,
 		handleUpdateMappingNotes,
 		handleManyToManyResourceMap,
+		handleBulkManyToManyResourceMap,
 		handleResourceUnmap,
 		handleMapToNothing,
 		handleMapFromNothing,

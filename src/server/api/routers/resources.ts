@@ -2,6 +2,7 @@ import { MIGRATION_CATEGORY_VALUES } from "@/constants/migration";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
+  migrationMappingSources,
   migrationMappingTargets,
   migrationMappings,
   resourceRelationships,
@@ -255,8 +256,8 @@ export const resourcesRouter = createTRPCRouter({
         if (mappingStatus === "mapped") {
           // Resource is mapped (exists in migration_mappings as source OR is a target)
           const mappedAsSourceSubquery = db
-            .select({ resourceId: migrationMappings.sourceResourceId })
-            .from(migrationMappings);
+            .select({ resourceId: migrationMappingSources.resourceId })
+            .from(migrationMappingSources);
 
           const mappedAsTargetSubquery = db
             .select({ resourceId: migrationMappingTargets.resourceId })
@@ -271,8 +272,8 @@ export const resourcesRouter = createTRPCRouter({
         } else if (mappingStatus === "unmapped") {
           // Resource is NOT mapped (does NOT exist in migration_mappings as source OR target)
           const mappedAsSourceSubquery = db
-            .select({ resourceId: migrationMappings.sourceResourceId })
-            .from(migrationMappings);
+            .select({ resourceId: migrationMappingSources.resourceId })
+            .from(migrationMappingSources);
 
           const mappedAsTargetSubquery = db
             .select({ resourceId: migrationMappingTargets.resourceId })
@@ -402,8 +403,8 @@ export const resourcesRouter = createTRPCRouter({
         if (mappingStatus === "mapped") {
           // Resource is mapped (exists in migration_mappings as source OR is a target)
           const mappedAsSourceSubquery = db
-            .select({ resourceId: migrationMappings.sourceResourceId })
-            .from(migrationMappings);
+            .select({ resourceId: migrationMappingSources.resourceId })
+            .from(migrationMappingSources);
 
           const mappedAsTargetSubquery = db
             .select({ resourceId: migrationMappingTargets.resourceId })
@@ -418,8 +419,8 @@ export const resourcesRouter = createTRPCRouter({
         } else if (mappingStatus === "unmapped") {
           // Resource is NOT mapped (does NOT exist in migration_mappings as source OR target)
           const mappedAsSourceSubquery = db
-            .select({ resourceId: migrationMappings.sourceResourceId })
-            .from(migrationMappings);
+            .select({ resourceId: migrationMappingSources.resourceId })
+            .from(migrationMappingSources);
 
           const mappedAsTargetSubquery = db
             .select({ resourceId: migrationMappingTargets.resourceId })

@@ -1,0 +1,2 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
+arn:aws:dynamodb:us-east-1:418295703256:table/terraform-state-lock,terraform-state-lock,"","",pending,AI mapping required - review patterns

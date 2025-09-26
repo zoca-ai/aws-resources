@@ -1,0 +1,6 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
+arn:aws:ecs:us-east-1:418295703256:cluster/mononest-automations,mononest-automations,"","",pending,AI mapping required - review patterns
+arn:aws:ecs:us-east-1:418295703256:cluster/mononest-cluster-prod,mononest-cluster-prod,"","",pending,AI mapping required - review patterns
+arn:aws:ecs:us-east-1:418295703256:cluster/production-servers-cluster,production-servers-cluster,"","",pending,AI mapping required - review patterns
+arn:aws:ecs:us-east-1:418295703256:cluster/production-workers,production-workers,"","",pending,AI mapping required - review patterns
+arn:aws:ecs:us-east-1:418295703256:cluster/zoca-management,zoca-management,"","",pending,AI mapping required - review patterns

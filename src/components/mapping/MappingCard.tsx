@@ -44,35 +44,58 @@ export function MappingCard({
     <div
       className={`grid grid-cols-[300px_120px_1fr_100px] gap-4 rounded-lg border p-4 transition-colors hover:bg-accent/50 mb-4 items-start ${typeConfig.color}`}
     >
-      {/* Source Resource - Column 1 */}
-      <div className="flex items-start gap-3 min-w-0">
-        <AwsIcon
-          resourceType={mapping.sourceResourceType || "unknown"}
-          size={24}
-          className="flex-shrink-0 mt-0.5"
-          fallback="lucide"
-        />
-        <div className="min-w-0 flex-1">
-          <div
-            className="truncate font-medium text-sm leading-5"
-            title={mapping.sourceResourceId}
-          >
-            {mapping.sourceResourceName ||
-              mapping.sourceResourceId ||
-              "Unknown Resource"}
-          </div>
-          <div className="mt-2 space-y-1">
-            <Badge variant="outline" className="text-xs">
-              {formatAwsResourceType(mapping.sourceResourceType || "unknown")}
-            </Badge>
-            <br />
-            <Badge
-              variant="outline"
-              className="border-blue-200 bg-blue-50 text-blue-800 text-xs"
-            >
-              {mapping.sourceCategory || "old"}
-            </Badge>
-          </div>
+      {/* Source Resources - Column 1 */}
+      <div className="min-w-0">
+        <div className="space-y-2">
+          {mapping.sourceResources && mapping.sourceResources.length > 0 ? (
+            <>
+              {mapping.sourceResources
+                .slice(0, 2)
+                .map((source: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 min-w-0 py-1"
+                  >
+                    <AwsIcon
+                      resourceType={source.resourceType || "unknown"}
+                      size={20}
+                      className="flex-shrink-0 mt-0.5"
+                      fallback="lucide"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="truncate font-medium text-sm leading-5"
+                        title={source.resourceId}
+                      >
+                        {source.resourceName || source.resourceId || "Unknown Resource"}
+                      </div>
+                      <div className="mt-1 space-y-1">
+                        <Badge variant="outline" className="text-xs">
+                          {formatAwsResourceType(source.resourceType || "unknown")}
+                        </Badge>
+                        <br />
+                        <Badge
+                          variant="outline"
+                          className="border-blue-200 bg-blue-50 text-blue-800 text-xs"
+                        >
+                          {source.category || "old"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              {mapping.sourceResources.length > 2 && (
+                <div className="text-muted-foreground text-xs pl-6 py-1">
+                  +{mapping.sourceResources.length - 2} more sources
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <TypeIcon className="h-4 w-4" />
+              No source resources
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,0 +1,8 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/app/alb-without-waf/ff18d82b2962af2f,alb-without-waf,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/net/awseb--AWSEB-chHwj7pDLhgX/e91cefb672c8dfec,awseb--AWSEB-chHwj7pDLhgX,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/app/awseb--AWSEB-Fh9VOSu3cF2J/7ff54b05ca3fc5e3,awseb--AWSEB-Fh9VOSu3cF2J,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/net/awseb--AWSEB-fKQBroJJiOiw/701c63f1911e7ed9,awseb--AWSEB-fKQBroJJiOiw,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/app/mononest-rest-prod-alb/1d9199c661af0713,mononest-rest-prod-alb,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/app/production-servers-alb/6736f8773e54e120,production-servers-alb,"","",pending,AI mapping required - review patterns
+arn:aws:elasticloadbalancing:us-east-1:418295703256:loadbalancer/app/zoca-query-gen-service-lb/696a307ccacdfe49,zoca-query-gen-service-lb,"","",pending,AI mapping required - review patterns

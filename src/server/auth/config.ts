@@ -52,6 +52,7 @@ export const authConfig = {
 		signIn: "/auth/signin",
 		error: "/auth/error",
 	},
+	trustHost: true,
 	callbacks: {
 		async signIn({ account, profile }) {
 			if (account?.provider === "google") {

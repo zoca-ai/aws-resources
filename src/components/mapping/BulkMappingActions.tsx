@@ -147,9 +147,13 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 	const [mappingDirection, setMappingDirection] = useState("old_to_new");
 
 	// Show component when either old resources or new resources are selected
+	// Allow null mappings (where either side can be empty)
 	if (selectedOldResources.length === 0 && selectedNewResources.length === 0) {
 		return null;
 	}
+
+	// Check if this is a null mapping scenario
+	const isNullMapping = selectedOldResources.length === 0 || selectedNewResources.length === 0;
 
 	const selectedOldResourceObjects = oldResources.filter((r) =>
 		selectedOldResources.includes(r.resourceId),
@@ -177,11 +181,23 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 			[...oldResourceTypes][0] !== [...newResourceTypes][0]);
 
 	const handleConfirm = () => {
-		onCreateMapping({
-			mappingDirection,
-			mappingType,
-			notes: notes.trim() || undefined,
-		});
+		if (isNullMapping) {
+			if (selectedOldResources.length === 0 && onMapFromNothing) {
+				// Newly added resources (no old resources selected)
+				onMapFromNothing(selectedNewResources, notes.trim() || undefined);
+			} else if (selectedNewResources.length === 0 && onMapToNothing) {
+				// Resources to be migrated/deprecated/removed (no new resources selected)
+				onMapToNothing(selectedOldResources, mappingType, notes.trim() || undefined);
+			}
+		} else {
+			// Regular many-to-many mapping
+			onCreateMapping({
+				mappingDirection,
+				mappingType,
+				notes: notes.trim() || undefined,
+			});
+		}
+
 		setShowConfirmDialog(false);
 		setNotes("");
 		setMappingType("replacement");
@@ -260,13 +276,20 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 								)}
 							</div>
 
-							<ArrowRight className="h-4 w-4 text-muted-foreground" />
+							{!isNullMapping && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+							{isNullMapping && selectedOldResources.length === 0 && (
+								<span className="text-green-600 font-medium">→ Newly Added</span>
+							)}
+							{isNullMapping && selectedNewResources.length === 0 && (
+								<span className="text-yellow-600 font-medium">→ For Migration</span>
+							)}
 
-							<div className="flex items-center gap-2">
-								<Badge variant="secondary">
-									{selectedNewResources.length} target
-									{selectedNewResources.length > 1 ? "s" : ""}
-								</Badge>
+							{!isNullMapping && (
+								<div className="flex items-center gap-2">
+									<Badge variant="secondary">
+										{selectedNewResources.length} target
+										{selectedNewResources.length > 1 ? "s" : ""}
+									</Badge>
 								{selectedNewResourceObjects.slice(0, 2).map((resource) => (
 									<div
 										key={resource.resourceId}
@@ -294,7 +317,8 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 										+{selectedNewResourceObjects.length - 2} more
 									</span>
 								)}
-							</div>
+								</div>
+							)}
 						</div>
 
 						{/* Warning Indicators */}
@@ -341,12 +365,11 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 								className="flex h-8 items-center gap-2"
 							>
 								<Link className="h-4 w-4" />
-								Create{" "}
-								{selectedOldResources.length * selectedNewResources.length}{" "}
-								Mapping
-								{selectedOldResources.length * selectedNewResources.length > 1
-									? "s"
-									: ""}
+								{isNullMapping
+									? selectedOldResources.length === 0
+										? "Mark as Newly Added"
+										: "Mark for Migration"
+									: "Create Many-to-Many Mapping"}
 							</Button>
 						</div>
 					</div>
@@ -362,16 +385,31 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 							Confirm Resource Mapping
 						</DialogTitle>
 						<DialogDescription>
-							You are about to create{" "}
-							{selectedOldResources.length * selectedNewResources.length}{" "}
-							mapping
-							{selectedOldResources.length * selectedNewResources.length > 1
-								? "s"
-								: ""}{" "}
-							between {selectedOldResources.length} old resource
-							{selectedOldResources.length > 1 ? "s" : ""} and{" "}
-							{selectedNewResources.length} new resource
-							{selectedNewResources.length > 1 ? "s" : ""}.
+							{isNullMapping ? (
+								selectedOldResources.length === 0 ? (
+									<>
+										You are about to mark{" "}
+										{selectedNewResources.length} resource
+										{selectedNewResources.length > 1 ? "s" : ""} as newly added
+										to the infrastructure.
+									</>
+								) : (
+									<>
+										You are about to mark{" "}
+										{selectedOldResources.length} old resource
+										{selectedOldResources.length > 1 ? "s" : ""} for migration
+										(deprecation/removal).
+									</>
+								)
+							) : (
+								<>
+									You are about to create a many-to-many mapping between{" "}
+									{selectedOldResources.length} old resource
+									{selectedOldResources.length > 1 ? "s" : ""} and{" "}
+									{selectedNewResources.length} new resource
+									{selectedNewResources.length > 1 ? "s" : ""}.
+								</>
+							)}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -455,31 +493,42 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 						</div>
 
 						{/* Warnings */}
-						{(isMultipleMapping || isCrossTypeMapping) && (
+						{(isMultipleMapping || isCrossTypeMapping || isNullMapping) && (
 							<div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50/90 p-3">
 								<AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" />
 								<div className="text-sm">
 									{isMultipleOldMapping && isMultipleNewMapping && (
 										<div className="mb-1 text-yellow-800">
-											<strong>Many-to-Many Mapping:</strong> This will create
-											{selectedOldResources.length *
-												selectedNewResources.length}{" "}
-											mappings between {selectedOldResources.length} old
-											resources and {selectedNewResources.length} new resources.
+											<strong>Many-to-Many Mapping:</strong> This will create a single
+											many-to-many mapping linking {selectedOldResources.length} old
+											resources to {selectedNewResources.length} new resources.
 										</div>
 									)}
 									{isMultipleOldMapping && !isMultipleNewMapping && (
 										<div className="mb-1 text-yellow-800">
-											<strong>Many-to-One Mapping:</strong> This will create
-											multiple mappings from {selectedOldResources.length} old
+											<strong>Many-to-One Mapping:</strong> This will create a single
+											mapping from {selectedOldResources.length} old
 											resources to 1 new resource.
 										</div>
 									)}
 									{!isMultipleOldMapping && isMultipleNewMapping && (
 										<div className="mb-1 text-yellow-800">
-											<strong>One-to-Many Mapping:</strong> This will create
-											multiple mappings from 1 old resource to{" "}
+											<strong>One-to-Many Mapping:</strong> This will create a single
+											mapping from 1 old resource to{" "}
 											{selectedNewResources.length} new resources.
+										</div>
+									)}
+									{isNullMapping && selectedOldResources.length === 0 && (
+										<div className="mb-1 text-yellow-800">
+											<strong>Newly Added Resources:</strong> These resources will be
+											marked as newly added to the infrastructure with no legacy
+											equivalent.
+										</div>
+									)}
+									{isNullMapping && selectedNewResources.length === 0 && (
+										<div className="mb-1 text-yellow-800">
+											<strong>Migration Marking:</strong> These legacy resources will be
+											marked for migration, deprecation, or removal.
 										</div>
 									)}
 									{isCrossTypeMapping && (
@@ -573,12 +622,11 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 						</Button>
 						<Button onClick={handleConfirm} disabled={loading}>
 							<Save className="mr-2 h-4 w-4" />
-							Confirm{" "}
-							{selectedOldResources.length * selectedNewResources.length}{" "}
-							Mapping
-							{selectedOldResources.length * selectedNewResources.length > 1
-								? "s"
-								: ""}
+							{isNullMapping
+								? selectedOldResources.length === 0
+									? "Confirm as Newly Added"
+									: "Confirm Migration Marking"
+								: "Confirm Many-to-Many Mapping"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

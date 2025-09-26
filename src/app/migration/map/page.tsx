@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  BulkMappingActions,
-  MappingColumn,
-  MappingPanel,
-} from "@/components/mapping";
+import { BulkMappingActions, MappingColumn } from "@/components/mapping";
 import { MigrationNav } from "@/components/migration/MigrationNav";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useMapping } from "@/hooks/use-mapping";
 import type { MappingResource } from "@/hooks/use-mapping";
 import { MAPPING_CONFIGS } from "@/lib/constants/mapping";
@@ -14,8 +9,6 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 
 export default function MappingPage() {
   const mapping = useMapping();
-  const [selectedResource, setSelectedResource] =
-    useState<MappingResource | null>(null);
   const [selectedOldResources, setSelectedOldResources] = useState<string[]>(
     [],
   );
@@ -111,7 +104,11 @@ export default function MappingPage() {
   // Smart pagination - preload next pages based on user interaction patterns
   const smartPreload = useCallback(() => {
     // Only proceed if mapping functions are available
-    if (!mapping.fetchNextPage || !mapping.hasNextPage || !mapping.isFetchingNextPage) {
+    if (
+      !mapping.fetchNextPage ||
+      !mapping.hasNextPage ||
+      !mapping.isFetchingNextPage
+    ) {
       return;
     }
 
@@ -163,10 +160,6 @@ export default function MappingPage() {
   }, [smartPreload]);
 
   // Handlers
-  const handleResourceViewDetails = (resource: MappingResource) => {
-    setSelectedResource(resource);
-    mapping.setShowMappingDialog(true);
-  };
 
   const handleSelectOldResource = (resourceId: string) => {
     setSelectedOldResources((prev) =>
@@ -213,26 +206,43 @@ export default function MappingPage() {
         );
       } else {
         // Multiple old resources to multiple new resources (many-to-many)
-        // Create individual mappings for each old resource to all selected new resources
-        const mappingPromises = selectedOldResources.map(async (oldResourceId) => {
-          const oldResource = oldResources.find(
-            (r) => r.resourceId === oldResourceId,
-          );
-          return mapping.handleManyToManyResourceMap(
-            oldResourceId,
+        // Use bulk API for better performance when dealing with many sources
+        if (mapping.handleBulkManyToManyResourceMap) {
+          await mapping.handleBulkManyToManyResourceMap(
+            selectedOldResources,
             selectedNewResources,
             {
               mappingDirection: options?.mappingDirection || "old_to_new",
               mappingType: options?.mappingType || "replacement",
               notes:
                 options?.notes ||
-                `Many-to-many mapping: ${oldResource?.resourceName || oldResourceId} to ${selectedNewResources.length} target resources`,
+                `Bulk many-to-many mapping: ${selectedOldResources.length} sources to ${selectedNewResources.length} targets`,
             },
           );
-        });
+        } else {
+          // Fallback to individual mappings if bulk API is not available
+          const mappingPromises = selectedOldResources.map(
+            async (oldResourceId) => {
+              const oldResource = oldResources.find(
+                (r) => r.resourceId === oldResourceId,
+              );
+              return mapping.handleManyToManyResourceMap(
+                oldResourceId,
+                selectedNewResources,
+                {
+                  mappingDirection: options?.mappingDirection || "old_to_new",
+                  mappingType: options?.mappingType || "replacement",
+                  notes:
+                    options?.notes ||
+                    `Many-to-many mapping: ${oldResource?.resourceName || oldResourceId} to ${selectedNewResources.length} target resources`,
+                },
+              );
+            },
+          );
 
-        // Execute all mappings in parallel for better performance
-        await Promise.all(mappingPromises);
+          // Execute all mappings in parallel for better performance
+          await Promise.all(mappingPromises);
+        }
       }
 
       // Clear selections
@@ -246,40 +256,6 @@ export default function MappingPage() {
   const handleClearSelection = () => {
     setSelectedOldResources([]);
     setSelectedNewResources([]);
-  };
-
-  const handleCreateMappingFromPanel = async (
-    targetResourceIds: string[],
-    notes?: string,
-  ) => {
-    if (selectedResource && targetResourceIds.length > 0) {
-      if (targetResourceIds.length === 1) {
-        // Single mapping
-        await mapping.handleResourceMap(
-          selectedResource.resourceId,
-          targetResourceIds[0],
-          notes,
-        );
-      } else {
-        // Many-to-many mapping
-        await mapping.handleManyToManyResourceMap(
-          selectedResource.resourceId,
-          targetResourceIds,
-          {
-            mappingDirection: "old_to_new",
-            mappingType: "replacement",
-            notes: notes || `Mapped to ${targetResourceIds.length} target resources`,
-          },
-        );
-      }
-      mapping.setShowMappingDialog(false);
-      setSelectedResource(null);
-    }
-  };
-
-  const handleCloseMappingDialog = () => {
-    mapping.setShowMappingDialog(false);
-    setSelectedResource(null);
   };
 
   return (
@@ -332,7 +308,7 @@ export default function MappingPage() {
           onResourceMap={mapping.handleResourceMap}
           onResourceUnmap={mapping.handleResourceUnmap}
           suggestedMappings={mapping.suggestedMappings}
-          onViewDetails={handleResourceViewDetails}
+          onViewDetails={() => {}}
           onSelectAll={() => {
             if (filteredOldResources.length > 0) {
               setSelectedOldResources(
@@ -390,7 +366,7 @@ export default function MappingPage() {
           onResourceMap={mapping.handleResourceMap}
           onResourceUnmap={mapping.handleResourceUnmap}
           suggestedMappings={mapping.suggestedMappings}
-          onViewDetails={handleResourceViewDetails}
+          onViewDetails={() => {}}
           onSelectAll={() => {
             if (
               selectedOldResources.length > 0 &&
@@ -413,6 +389,14 @@ export default function MappingPage() {
         newResources={filteredNewResources}
         onCreateMapping={handleCreateMapping}
         onClearSelection={handleClearSelection}
+        onMapToNothing={(resourceIds, mappingType, notes) => {
+          resourceIds.forEach((resourceId) => {
+            mapping.handleMapToNothing(resourceId, mappingType, notes);
+          });
+        }}
+        onMapFromNothing={(resourceIds, notes) => {
+          mapping.handleMapFromNothing(resourceIds, notes);
+        }}
         loading={mapping.loading.mappings}
       />
 
@@ -463,53 +447,6 @@ export default function MappingPage() {
           </div>
         </div>
       )}
-
-      {selectedNewResources.length > 0 && selectedOldResources.length === 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
-          <div className="bg-background border rounded-lg shadow-lg p-4 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {selectedNewResources.length} new resource
-              {selectedNewResources.length > 1 ? "s" : ""} selected
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  mapping.handleMapFromNothing(
-                    selectedNewResources,
-                    `${selectedNewResources.length} resources marked as newly added`,
-                  );
-                  setSelectedNewResources([]);
-                }}
-                className="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-md text-sm flex items-center gap-2"
-                disabled={mapping.loading.mappings}
-              >
-                <span>➕</span>
-                Mark as Newly Added
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mapping Dialog */}
-      <Dialog
-        open={mapping.globalState.showMappingDialog}
-        onOpenChange={handleCloseMappingDialog}
-      >
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden">
-          <MappingPanel
-            resource={selectedResource}
-            suggestedMappings={
-              selectedResource
-                ? mapping.suggestedMappings[selectedResource.resourceId] || []
-                : []
-            }
-            onMap={handleCreateMappingFromPanel}
-            onClose={handleCloseMappingDialog}
-            loading={mapping.loading.mappings}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -8,6 +8,13 @@
       "when": 1758838740318,
       "tag": "0000_volatile_famine",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1758903538734,
+      "tag": "0001_soft_random",
+      "breakpoints": true
     }
   ]
 }

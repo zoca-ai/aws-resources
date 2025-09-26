@@ -36,7 +36,9 @@ export function MappingNotesDialog({
           <DialogTitle>Edit Mapping Notes</DialogTitle>
           <DialogDescription>
             Add or edit notes for this mapping between{" "}
-            {editingMapping?.sourceResourceName || editingMapping?.sourceResourceId}{" "}
+            {editingMapping?.sourceResources?.[0]?.resourceName ||
+             editingMapping?.sourceResources?.[0]?.resourceId ||
+             "source resources"}{" "}
             and its targets.
           </DialogDescription>
         </DialogHeader>

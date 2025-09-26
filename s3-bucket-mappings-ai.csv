@@ -1,0 +1,63 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes,confidence_score
+arn:aws:s3:::content.studio,content.studio,arn:aws:s3:::zoca-content-studio-production,zoca-content-studio-production,pending,Content studio functionality migration,95
+arn:aws:s3:::domain-transfer-storage,domain-transfer-storage,arn:aws:s3:::zoca-domain-transfer-production,zoca-domain-transfer-production,pending,Domain transfer storage migration,95
+arn:aws:s3:::mixpanel-website-data,mixpanel-website-data,arn:aws:s3:::zoca-mixpanel-website-data-production,zoca-mixpanel-website-data-production,pending,Mixpanel website data migration,95
+arn:aws:s3:::mixpanel-website-data-migrated,mixpanel-website-data-migrated,arn:aws:s3:::zoca-mixpanel-website-data-production,zoca-mixpanel-website-data-production,pending,Mixpanel migrated data consolidation,90
+arn:aws:s3:::elb-access-logs-zoca,elb-access-logs-zoca,arn:aws:s3:::zoca-production-lb-logs,zoca-production-lb-logs,pending,ELB access logs migration,95
+arn:aws:s3:::staging-alb-logs-418295703256,staging-alb-logs-418295703256,arn:aws:s3:::zoca-production-lb-logs,zoca-production-lb-logs,pending,Staging ALB logs migration,85
+arn:aws:s3:::zoca-cdn-logs,zoca-cdn-logs,arn:aws:s3:::zoca-cloudfront-logs-production,zoca-cloudfront-logs-production,pending,CDN logs migration,95
+arn:aws:s3:::zoca-s3-logs,zoca-s3-logs,arn:aws:s3:::zoca-cloudfront-logs-production,zoca-cloudfront-logs-production,pending,S3 logs migration,85
+arn:aws:s3:::aws-sam-cli-managed-default-samclisourcebucket-fuyvvkiy1jpp,aws-sam-cli-managed-default-samclisourcebucket-fuyvvkiy1jpp,arn:aws:s3:::zoca-production-sam-bucket,zoca-production-sam-bucket,pending,SAM CLI bucket migration,90
+arn:aws:s3:::zoca-mononest-sam-bucket,zoca-mononest-sam-bucket,arn:aws:s3:::zoca-production-sam-bucket,zoca-production-sam-bucket,pending,Mononest SAM bucket migration,90
+arn:aws:s3:::zoca-mononest-sam-bucket-dev,zoca-mononest-sam-bucket-dev,arn:aws:s3:::zoca-production-sam-bucket,zoca-production-sam-bucket,pending,Mononest SAM dev bucket migration,85
+arn:aws:s3:::website-store-production,website-store-production,arn:aws:s3:::zoca-website-store-production,zoca-website-store-production,pending,Website store production migration,95
+arn:aws:s3:::website-store-staging,website-store-staging,arn:aws:s3:::zoca-website-store-production,zoca-website-store-production,pending,Website store staging migration,85
+arn:aws:s3:::sp-website-images,sp-website-images,arn:aws:s3:::zoca-website-images-production,zoca-website-images-production,pending,SP website images migration,90
+arn:aws:s3:::sp-website-production,sp-website-production,arn:aws:s3:::zoca-website-builds-production,zoca-website-builds-production,pending,SP website production migration,85
+arn:aws:s3:::sp-website-development,sp-website-development,arn:aws:s3:::zoca-website-builds-production,zoca-website-builds-production,pending,SP website development migration,80
+arn:aws:s3:::zoca-frontend-v3,zoca-frontend-v3,arn:aws:s3:::zoca-website-builds-production,zoca-website-builds-production,pending,Frontend v3 migration,85
+arn:aws:s3:::zoca-client-data,zoca-client-data,arn:aws:s3:::zoca-client-data-production,zoca-client-data-production,pending,Client data migration,95
+arn:aws:s3:::zoca-client-data-dev,zoca-client-data-dev,arn:aws:s3:::zoca-client-data-production,zoca-client-data-production,pending,Client data dev migration,90
+arn:aws:s3:::zoca-client-files,zoca-client-files,arn:aws:s3:::zoca-client-files-production,zoca-client-files-production,pending,Client files migration,95
+arn:aws:s3:::zoca-client-files-dev,zoca-client-files-dev,arn:aws:s3:::zoca-client-files-production,zoca-client-files-production,pending,Client files dev migration,90
+arn:aws:s3:::zoca-client-upload,zoca-client-upload,arn:aws:s3:::zoca-client-upload-production,zoca-client-upload-production,pending,Client upload migration,95
+arn:aws:s3:::zoca-client-upload-dev,zoca-client-upload-dev,arn:aws:s3:::zoca-client-upload-production,zoca-client-upload-production,pending,Client upload dev migration,90
+arn:aws:s3:::zoca-file-uploads,zoca-file-uploads,arn:aws:s3:::zoca-client-upload-production,zoca-client-upload-production,pending,File uploads migration,85
+arn:aws:s3:::zoca-file-uploads-dev,zoca-file-uploads-dev,arn:aws:s3:::zoca-client-upload-production,zoca-client-upload-production,pending,File uploads dev migration,80
+arn:aws:s3:::zoca-media-bank,zoca-media-bank,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Media bank migration,95
+arn:aws:s3:::zoca-media-bank-dev,zoca-media-bank-dev,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Media bank dev migration,90
+arn:aws:s3:::test-media-bank,test-media-bank,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Test media bank migration,85
+arn:aws:s3:::test-media-bank-1,test-media-bank-1,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Test media bank 1 migration,85
+arn:aws:s3:::zoca-stock-media-bank,zoca-stock-media-bank,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Stock media bank migration,80
+arn:aws:s3:::zoca-stock-media-bank-dev,zoca-stock-media-bank-dev,arn:aws:s3:::zoca-media-bank-production,zoca-media-bank-production,pending,Stock media bank dev migration,75
+arn:aws:s3:::zoca-assets,zoca-assets,arn:aws:s3:::zoca-assets-production-bucket,zoca-assets-production-bucket,pending,Assets migration,95
+arn:aws:s3:::zoca-app,zoca-app,arn:aws:s3:::zoca-app-storage-production,zoca-app-storage-production,pending,App storage migration,90
+arn:aws:s3:::zoca-app-misc,zoca-app-misc,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,App misc migration,90
+arn:aws:s3:::zoca-app-misc-dev,zoca-app-misc-dev,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,App misc dev migration,85
+arn:aws:s3:::zoca-production,zoca-production,arn:aws:s3:::zoca-s3-bucket-production,zoca-s3-bucket-production,pending,Main production bucket migration,85
+arn:aws:s3:::zoca-staging,zoca-staging,arn:aws:s3:::zoca-s3-bucket-production,zoca-s3-bucket-production,pending,Staging bucket migration,80
+arn:aws:s3:::zoca-public-bucket,zoca-public-bucket,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,Public bucket migration,75
+arn:aws:s3:::zoca-public-bucket-dev,zoca-public-bucket-dev,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,Public bucket dev migration,70
+arn:aws:s3:::zoca-lead-magnet-public,zoca-lead-magnet-public,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,Lead magnet migration,75
+arn:aws:s3:::zoca-sales-lead,zoca-sales-lead,arn:aws:s3:::zoca-miscellaneous-production,zoca-miscellaneous-production,pending,Sales lead migration,75
+arn:aws:s3:::api-server-ebs-zip,api-server-ebs-zip,arn:aws:s3:::zoca-release-artifacts-production,zoca-release-artifacts-production,pending,API server artifacts migration,70
+arn:aws:s3:::chrome-layer-deployment-1757932349,chrome-layer-deployment-1757932349,arn:aws:s3:::zoca-release-artifacts-production,zoca-release-artifacts-production,pending,Chrome layer deployment migration,75
+arn:aws:s3:::zoca-adhocs-lambdas-dev,zoca-adhocs-lambdas-dev,arn:aws:s3:::zoca-release-artifacts-production,zoca-release-artifacts-production,pending,Adhoc lambdas migration,70
+arn:aws:s3:::prod-ec2-dump,prod-ec2-dump,arn:aws:s3:::zoca-production-cloudtrail-logs,zoca-production-cloudtrail-logs,pending,EC2 dump data migration,60
+arn:aws:s3:::sp-website-backup,sp-website-backup,arn:aws:s3:::zoca-production-cloudtrail-logs,zoca-production-cloudtrail-logs,pending,Website backup migration,60
+arn:aws:s3:::zoca-infra-terraform-state-bucket-production,zoca-infra-terraform-state-bucket-production,,,,Infrastructure bucket - keep separate,0
+arn:aws:s3:::mononest-rest-terraform-state-prod,mononest-rest-terraform-state-prod,,,,Terraform state - keep separate,0
+arn:aws:s3:::mononest-rest-terraform-state-staging,mononest-rest-terraform-state-staging,,,,Terraform state - keep separate,0
+arn:aws:s3:::mononest-terraform-state-prod,mononest-terraform-state-prod,,,,Terraform state - keep separate,0
+arn:aws:s3:::mononest-terraform-state-staging,mononest-terraform-state-staging,,,,Terraform state - keep separate,0
+arn:aws:s3:::mononet-rest-terraform-state-prod,mononet-rest-terraform-state-prod,,,,Terraform state - keep separate,0
+arn:aws:s3:::mononet-rest-terraform-state-staging,mononet-rest-terraform-state-staging,,,,Terraform state - keep separate,0
+arn:aws:s3:::elasticbeanstalk-us-east-1-418295703256,elasticbeanstalk-us-east-1-418295703256,,,,AWS managed bucket - no migration needed,0
+arn:aws:s3:::elasticbeanstalk-us-east-2-418295703256,elasticbeanstalk-us-east-2-418295703256,,,,AWS managed bucket - no migration needed,0
+arn:aws:s3:::signed-bucket-zoca-test,signed-bucket-zoca-test,,,,Test bucket - can be deprecated,0
+arn:aws:s3:::signed-bucket-zoca-test-dev,signed-bucket-zoca-test-dev,,,,Test bucket - can be deprecated,0
+arn:aws:s3:::rank-automation-bucket,rank-automation-bucket,,,,Legacy automation - review if still needed,0
+arn:aws:s3:::tagger-main,tagger-main,,,,Legacy tagger - review if still needed,0
+arn:aws:s3:::zoca-custom-scripts,zoca-custom-scripts,,,,Custom scripts - review if still needed,0
+arn:aws:s3:::zoca-redirect,zoca-redirect,,,,Redirect bucket - review if still needed,0
+arn:aws:s3:::zoca-tech,zoca-tech,,,,Tech bucket - review if still needed,0

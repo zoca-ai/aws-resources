@@ -310,16 +310,11 @@ export const migrationMappings = createTable(
 	"migration_mapping",
 	(d) => ({
 		id: d.serial().primaryKey(),
-		mappingGroupId: d.varchar({ length: 255 }).notNull(),
+		mappingGroupId: d.varchar({ length: 255 }).notNull().unique(),
 
-		// Source resource
-		sourceResourceId: d.varchar({ length: 255 }).notNull(),
-		sourceResourceType: d.varchar({ length: 100 }),
-		sourceResourceName: d.varchar({ length: 255 }),
-		sourceResourceArn: d.varchar({ length: 512 }),
-		sourceRegion: d.varchar({ length: 50 }),
-		sourceAwsAccountId: d.varchar({ length: 12 }),
-		sourceCategory: d.varchar({ length: 20 }).notNull(),
+		// Mapping metadata (no specific source/target info)
+		mappingName: d.varchar({ length: 255 }),
+		mappingDescription: d.text(),
 
 		// Mapping direction and type
 		mappingDirection: d.varchar({ length: 20 }).default("old_to_new"),
@@ -362,8 +357,6 @@ export const migrationMappings = createTable(
 	}),
 	(t) => [
 		index("mapping_group_id_idx").on(t.mappingGroupId),
-		index("mapping_source_resource_id_idx").on(t.sourceResourceId),
-		index("mapping_source_category_idx").on(t.sourceCategory),
 		index("mapping_direction_idx").on(t.mappingDirection),
 		index("mapping_migration_status_idx").on(t.migrationStatus),
 		index("mapping_category_idx").on(t.category),
@@ -403,6 +396,48 @@ export const migrationMappingTargets = createTable(
 		index("mapping_target_mapping_id_idx").on(t.mappingId),
 		index("mapping_target_resource_id_idx").on(t.resourceId),
 		index("mapping_target_category_idx").on(t.category),
+	],
+);
+
+export const migrationMappingSources = createTable(
+	"migration_mapping_source",
+	(d) => ({
+		id: d.serial().primaryKey(),
+		mappingId: d
+			.integer()
+			.notNull()
+			.references(() => migrationMappings.id, { onDelete: "cascade" }),
+		resourceId: d.varchar({ length: 255 }).notNull(),
+		resourceType: d.varchar({ length: 100 }),
+		resourceName: d.varchar({ length: 255 }),
+		resourceArn: d.varchar({ length: 512 }),
+		region: d.varchar({ length: 50 }),
+		awsAccountId: d.varchar({ length: 12 }),
+		category: d.varchar({ length: 20 }).notNull(),
+
+		// Terraform metadata for source
+		terraformType: d.varchar({ length: 100 }),
+		terraformModule: d.varchar({ length: 255 }),
+		terraformWorkspace: d.varchar({ length: 255 }),
+		stateFile: d.varchar({ length: 512 }),
+
+		// Source-specific metadata
+		migrationReadiness: d.varchar({ length: 20 }).default("pending"), // 'ready', 'blocked', 'pending'
+		deprecationDate: d.timestamp(),
+		lastUsedDate: d.timestamp(),
+		businessCriticality: d.varchar({ length: 20 }).default("medium"), // 'low', 'medium', 'high', 'critical'
+		notes: d.text(),
+
+		// Timestamps
+		createdAt: d.timestamp().default(sql`NOW()`).notNull(),
+		updatedAt: d.timestamp().$onUpdate(() => new Date()),
+	}),
+	(t) => [
+		index("mapping_source_mapping_id_idx").on(t.mappingId),
+		index("mapping_source_resource_id_idx").on(t.resourceId),
+		index("mapping_source_resource_type_idx").on(t.resourceType),
+		index("mapping_source_category_idx").on(t.category),
+		index("mapping_source_migration_readiness_idx").on(t.migrationReadiness),
 	],
 );
 
@@ -491,9 +526,20 @@ export const snapshotResourcesRelations = relations(
 export const migrationMappingsRelations = relations(
 	migrationMappings,
 	({ many }) => ({
+		sources: many(migrationMappingSources),
 		targets: many(migrationMappingTargets),
 		dependencies: many(migrationMappingDependencies),
 		tags: many(migrationMappingTags),
+	}),
+);
+
+export const migrationMappingSourcesRelations = relations(
+	migrationMappingSources,
+	({ one }) => ({
+		mapping: one(migrationMappings, {
+			fields: [migrationMappingSources.mappingId],
+			references: [migrationMappings.id],
+		}),
 	}),
 );
 

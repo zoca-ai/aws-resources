@@ -16,7 +16,7 @@ export interface MappingTypeConfig {
 export const getMappingTypeConfig = (mapping: any): MappingTypeConfig => {
   const hasTargets =
     mapping.targetResources && mapping.targetResources.length > 0;
-  const isNewResource = mapping.sourceResourceId === "NEW_RESOURCE";
+  const isNewResource = mapping.sourceResources?.some((source: any) => source.resourceId === "NEW_RESOURCE");
 
   const notes = mapping.notes?.toLowerCase() || "";
   const isDeprecated =
@@ -110,16 +110,23 @@ export const applyMappingFilters = (
 
   return mappings.filter((mapping: any) => {
     // Search filter
-    if (
-      filters.search &&
-      !(
-        mapping.sourceResourceName?.toLowerCase().includes(searchLower) ||
-        mapping.sourceResourceId?.toLowerCase().includes(searchLower) ||
-        mapping.sourceResourceType?.toLowerCase().includes(searchLower) ||
-        mapping.notes?.toLowerCase().includes(searchLower)
-      )
-    ) {
-      return false;
+    if (filters.search) {
+      const matchesSearch =
+        mapping.notes?.toLowerCase().includes(searchLower) ||
+        mapping.sourceResources?.some((source: any) =>
+          source.resourceName?.toLowerCase().includes(searchLower) ||
+          source.resourceId?.toLowerCase().includes(searchLower) ||
+          source.resourceType?.toLowerCase().includes(searchLower)
+        ) ||
+        mapping.targetResources?.some((target: any) =>
+          target.resourceName?.toLowerCase().includes(searchLower) ||
+          target.resourceId?.toLowerCase().includes(searchLower) ||
+          target.resourceType?.toLowerCase().includes(searchLower)
+        );
+
+      if (!matchesSearch) {
+        return false;
+      }
     }
 
     // Mapping type filter
@@ -140,21 +147,23 @@ export const applyMappingFilters = (
     }
 
     // Resource type filter
-    if (
-      filters.resourceTypeFilter &&
-      filters.resourceTypeFilter !== "all" &&
-      mapping.sourceResourceType !== filters.resourceTypeFilter
-    ) {
-      return false;
+    if (filters.resourceTypeFilter && filters.resourceTypeFilter !== "all") {
+      const hasMatchingResourceType = mapping.sourceResources?.some((source: any) =>
+        source.resourceType === filters.resourceTypeFilter
+      );
+      if (!hasMatchingResourceType) {
+        return false;
+      }
     }
 
     // Region filter
-    if (
-      filters.regionFilter &&
-      filters.regionFilter !== "all" &&
-      mapping.sourceRegion !== filters.regionFilter
-    ) {
-      return false;
+    if (filters.regionFilter && filters.regionFilter !== "all") {
+      const hasMatchingRegion = mapping.sourceResources?.some((source: any) =>
+        source.region === filters.regionFilter
+      );
+      if (!hasMatchingRegion) {
+        return false;
+      }
     }
 
     return true;

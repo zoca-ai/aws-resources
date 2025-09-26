@@ -6,14 +6,12 @@ import { VirtualScroll } from "@/components/ui/virtual-scroll";
 import { MappingListSkeleton } from "@/components/mapping/MappingSkeleton";
 import { MappingCard } from "@/components/mapping/MappingCard";
 import { MappingNotesDialog } from "@/components/mapping/MappingNotesDialog";
-import { type RouterOutputs, api } from "@/trpc/react";
+import { api } from "@/trpc/react";
 import React, { useState, useMemo, useEffect } from "react";
 import { applyMappingFilters } from "@/lib/utils/mapping";
 import { useMappingOperations } from "@/hooks/useMappingOperations";
 
 // Type for migration mapping from tRPC
-type MigrationMapping = RouterOutputs["migration"]["mappings"]["mappings"][0];
-import { MigrationNav } from "@/components/migration/MigrationNav";
 import { BarChart3, Search } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -24,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MigrationNav } from "@/components/migration/MigrationNav";
 
 export default function MappingsListPage() {
   // Use infinite query for better performance with large datasets
@@ -80,7 +79,6 @@ export default function MappingsListPage() {
   const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [selectedMappings, setSelectedMappings] = useState<string[]>([]);
   const [containerHeight, setContainerHeight] = useState(600); // Default height
 
   // Calculate container height on mount and resize

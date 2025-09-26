@@ -1,0 +1,25 @@
+source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes,confidence_score
+arn:aws:ecs:us-east-1:418295703256:service/alpha-worker,alpha-worker,arn:aws:ecs:us-east-1:418295703256:service/alpha-worker,alpha-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/client-worker,client-worker,arn:aws:ecs:us-east-1:418295703256:service/client-worker,client-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/gbp-worker,gbp-worker,arn:aws:ecs:us-east-1:418295703256:service/gbp-worker,gbp-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/image-worker,image-worker,arn:aws:ecs:us-east-1:418295703256:service/image-worker,image-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/lead-magnet-worker,lead-magnet-worker,arn:aws:ecs:us-east-1:418295703256:service/lead-magnet-worker,lead-magnet-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/link-scraper-worker,link-scraper-worker,arn:aws:ecs:us-east-1:418295703256:service/link-scraper-worker,link-scraper-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/media-worker,media-worker,arn:aws:ecs:us-east-1:418295703256:service/media-worker,media-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/pipedrive-worker,pipedrive-worker,arn:aws:ecs:us-east-1:418295703256:service/pipedrive-worker,pipedrive-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/victor-worker,victor-worker,arn:aws:ecs:us-east-1:418295703256:service/victor-worker,victor-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/website-creation-worker,website-creation-worker,arn:aws:ecs:us-east-1:418295703256:service/website-creation-worker,website-creation-worker,pending,Direct migration - same service name,100
+arn:aws:ecs:us-east-1:418295703256:service/leads-server-rest-prod-service,leads-server-rest-prod-service,arn:aws:ecs:us-east-1:418295703256:service/leads-server,leads-server,pending,Leads server REST to new architecture,95
+arn:aws:ecs:us-east-1:418295703256:service/links-server-rest-prod-service,links-server-rest-prod-service,arn:aws:ecs:us-east-1:418295703256:service/links-server,links-server,pending,Links server REST to new architecture,95
+arn:aws:ecs:us-east-1:418295703256:service/public-server-rest-prod-service,public-server-rest-prod-service,arn:aws:ecs:us-east-1:418295703256:service/public-server,public-server,pending,Public server REST to new architecture,95
+arn:aws:ecs:us-east-1:418295703256:service/production-internal-server,production-internal-server,arn:aws:ecs:us-east-1:418295703256:service/internal-server,internal-server,pending,Production internal server to new architecture,95
+arn:aws:ecs:us-east-1:418295703256:service/mononest-rest-prod-service,mononest-rest-prod-service,arn:aws:ecs:us-east-1:418295703256:service/api-server,api-server,pending,Mononest REST to API server,90
+arn:aws:ecs:us-east-1:418295703256:service/mononest-tasks-service-prod,mononest-tasks-service-prod,arn:aws:ecs:us-east-1:418295703256:service/tasks-server,tasks-server,pending,Mononest tasks service to tasks server,90
+arn:aws:ecs:us-east-1:418295703256:service/mononest-consumer-prod-service,mononest-consumer-prod-service,arn:aws:ecs:us-east-1:418295703256:service/alpha-worker,alpha-worker,pending,Mononest consumer to alpha worker,85
+arn:aws:ecs:us-east-1:418295703256:service/zoca-websites-frontend-prod-service,zoca-websites-frontend-prod-service,arn:aws:ecs:us-east-1:418295703256:service/zoca-websites,zoca-websites,pending,Zoca websites frontend to new architecture,90
+arn:aws:ecs:us-east-1:418295703256:service/zoca-query-gen-service,zoca-query-gen-service,arn:aws:ecs:us-east-1:418295703256:service/api-server,api-server,pending,Query generator service to API server,80
+arn:aws:ecs:us-east-1:418295703256:service/db-migration-prod-task-service,db-migration-prod-task-service,arn:aws:ecs:us-east-1:418295703256:service/chrone-node,chrone-node,pending,DB migration task to chrone node,75
+arn:aws:ecs:us-east-1:418295703256:service/bullmq-exporter-prod-service,bullmq-exporter-prod-service,,,,Monitoring service - keep as separate infrastructure,0
+arn:aws:ecs:us-east-1:418295703256:service/metabase-rest-prod-service,metabase-rest-prod-service,,,,Analytics service - keep as separate infrastructure,0
+arn:aws:ecs:us-east-1:418295703256:service/zoca-grafana-prod-service,zoca-grafana-prod-service,,,,Monitoring service - keep as separate infrastructure,0
+arn:aws:ecs:us-east-1:418295703256:service/zoca-prometheus-prod-service,zoca-prometheus-prod-service,,,,Monitoring service - keep as separate infrastructure,0
