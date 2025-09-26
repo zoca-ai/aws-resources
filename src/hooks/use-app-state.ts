@@ -9,35 +9,31 @@ export function useAppState() {
   const utils = api.useUtils();
 
   // Core data queries with optimized caching
-  const resources = api.resources.list.useQuery(void 0, {
+  const resources = api.resources.list.useQuery({}, {
     staleTime: 2 * 60 * 1000, // 2 minutes
     select: (data) => data?.resources || [],
   });
 
-  const resourceTypes = api.resources.types.useQuery(void 0, {
+  const resourceTypes = api.resources.types.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const resourceCategories = api.resources.categories.useQuery(void 0, {
+  const resourceCategories = api.resources.categories.useQuery(undefined, {
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
 
-  const collectorTypes = api.collector.types.useQuery(void 0, {
+  const collectorTypes = api.collector.types.useQuery(undefined, {
     staleTime: 10 * 60 * 1000, // 10 minutes - rarely changes
   });
 
-  const accountInfo = api.collector.account.useQuery(void 0, {
+  const accountInfo = api.collector.account.useQuery(undefined, {
     staleTime: 15 * 60 * 1000, // 15 minutes - static data
     refetchOnWindowFocus: false,
   });
 
-  const collectionJobs = api.collector.jobs.useQuery(void 0, {
+  const collectionJobs = api.collector.jobs.useQuery(undefined, {
     staleTime: 1 * 60 * 1000, // 1 minute
-    refetchInterval: (data) => {
-      // Poll faster if there are running jobs
-      const hasRunningJobs = data?.some(job => job.status === 'running');
-      return hasRunningJobs ? 5000 : 30000; // 5s if running jobs, 30s otherwise
-    },
+    refetchInterval: 30000, // 30 seconds
   });
 
   // Computed global state
@@ -87,7 +83,7 @@ export function useAppState() {
 
   const prefetchResourceDetails = useCallback((resourceId: string) => {
     // Prefetch resource details for better UX
-    utils.resources.byId.prefetch({ id: resourceId });
+    utils.resources.byId.prefetch({ resourceId });
   }, [utils]);
 
   return {

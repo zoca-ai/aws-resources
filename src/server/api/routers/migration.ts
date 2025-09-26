@@ -28,6 +28,7 @@ import {
 	inArray,
 	isNull,
 	like,
+	lt,
 	notInArray,
 	or,
 } from "drizzle-orm";
@@ -126,6 +127,99 @@ export const migrationRouter = createTRPCRouter({
 					total,
 					pages: Math.ceil(total / limit),
 				},
+			};
+		}),
+
+	// Infinite scroll version of mappings
+	mappingsInfinite: publicProcedure
+		.input(
+			z
+				.object({
+					status: z
+						.enum(MIGRATION_STATUS_VALUES as [string, ...string[]])
+						.optional(),
+					category: z
+						.enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
+						.optional(),
+					priority: z
+						.enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]])
+						.optional(),
+					cursor: z.string().optional(),
+					limit: z.number().min(1).max(250).default(50),
+				})
+		)
+		.query(async ({ input }) => {
+			const { status, category, priority, cursor, limit } = input;
+
+			// Build the query conditions
+			const conditions = [];
+			if (status) {
+				conditions.push(eq(migrationMappings.migrationStatus, status));
+			}
+			if (category) {
+				conditions.push(eq(migrationMappings.category, category));
+			}
+			if (priority) {
+				conditions.push(eq(migrationMappings.priority, priority));
+			}
+
+			// Apply cursor pagination
+			if (cursor) {
+				const [createdAt, id] = cursor.split('_');
+				if (createdAt && id) {
+					conditions.push(
+						or(
+							lt(migrationMappings.createdAt, new Date(createdAt)),
+							and(
+								eq(migrationMappings.createdAt, new Date(createdAt)),
+								lt(migrationMappings.id, parseInt(id))
+							)
+						)
+					);
+				}
+			}
+
+			// Build and execute the query
+			const baseQuery = db
+				.select()
+				.from(migrationMappings)
+				.orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
+
+			const mappingsList = conditions.length > 0
+				? await baseQuery.where(and(...conditions)).limit(limit + 1)
+				: await baseQuery.limit(limit + 1); // Fetch one extra to determine if there's a next page
+
+			// Determine if there's a next page
+			const hasNextPage = mappingsList.length > limit;
+			const mappings = hasNextPage ? mappingsList.slice(0, -1) : mappingsList;
+
+			// Get target resources for each mapping
+			const mappingsWithTargets = await Promise.all(
+				mappings.map(async (mapping) => {
+					const targets = await db
+						.select({
+							resourceId: resources.resourceId,
+							resourceName: resources.resourceName,
+							resourceType: resources.resourceType,
+						})
+						.from(migrationMappingTargets)
+						.innerJoin(resources, eq(migrationMappingTargets.resourceId, resources.resourceId))
+						.where(eq(migrationMappingTargets.mappingId, mapping.id));
+
+					return { ...mapping, targetResources: targets };
+				})
+			);
+
+			// Generate next cursor
+			let nextCursor: string | undefined;
+			if (hasNextPage) {
+				const lastItem = mappings[mappings.length - 1];
+				nextCursor = `${lastItem!.createdAt.toISOString()}_${lastItem!.id}`;
+			}
+
+			return {
+				mappings: mappingsWithTargets,
+				nextCursor,
 			};
 		}),
 

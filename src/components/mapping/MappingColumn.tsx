@@ -24,6 +24,8 @@ interface MappingColumnProps {
   onTypeFilterChange: (value: string) => void;
   regionFilter: string;
   onRegionFilterChange: (value: string) => void;
+  mappingStatusFilter: string;
+  onMappingStatusFilterChange: (value: string) => void;
   uniqueTypes: string[];
   uniqueRegions: string[];
   onClearFilters: () => void;
@@ -56,6 +58,8 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
   onTypeFilterChange,
   regionFilter,
   onRegionFilterChange,
+  mappingStatusFilter,
+  onMappingStatusFilterChange,
   uniqueTypes,
   uniqueRegions,
   onClearFilters,
@@ -72,7 +76,7 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
   onSelectOldResource,
 }) => {
   const hasFilters =
-    searchTerm !== "" || typeFilter !== "all" || regionFilter !== "all";
+    searchTerm !== "" || typeFilter !== "all" || regionFilter !== "all" || mappingStatusFilter !== "unmapped";
   const placeholder = `Search ${title.toLowerCase()}...`;
 
   return (
@@ -102,6 +106,8 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
           onTypeFilterChange={onTypeFilterChange}
           regionFilter={regionFilter}
           onRegionFilterChange={onRegionFilterChange}
+          mappingStatusFilter={mappingStatusFilter}
+          onMappingStatusFilterChange={onMappingStatusFilterChange}
           uniqueTypes={uniqueTypes}
           uniqueRegions={uniqueRegions}
           onClearFilters={onClearFilters}

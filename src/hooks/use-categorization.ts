@@ -14,7 +14,7 @@ import type {
 	UseCategorization,
 } from "@/lib/types/categorization";
 import { type RouterOutputs, api } from "@/trpc/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export function useCategorization(): UseCategorization {
@@ -52,26 +52,26 @@ export function useCategorization(): UseCategorization {
 		refetchOnWindowFocus: true,
 	});
 
-	// Build query inputs, only include optional fields if they have values
-	const oldQueryInput = {
+	// Build query inputs with infinite scrolling support
+	const oldQueryInput = useMemo(() => ({
 		category: "old" as const,
-		limit: 250,
+		limit: 50, // Smaller chunks for infinite scroll
 		...(debouncedOldSearch?.trim() && { search: debouncedOldSearch }),
 		...(filters.old.type !== "all" && { type: filters.old.type }),
 		...(filters.old.region !== "all" && { region: filters.old.region }),
-	};
+	}), [debouncedOldSearch, filters.old.type, filters.old.region]);
 
-	const newQueryInput = {
+	const newQueryInput = useMemo(() => ({
 		category: "new" as const,
-		limit: 250,
+		limit: 50,
 		...(debouncedNewSearch?.trim() && { search: debouncedNewSearch }),
 		...(filters.new.type !== "all" && { type: filters.new.type }),
 		...(filters.new.region !== "all" && { region: filters.new.region }),
-	};
+	}), [debouncedNewSearch, filters.new.type, filters.new.region]);
 
-	const uncategorizedQueryInput = {
+	const uncategorizedQueryInput = useMemo(() => ({
 		category: "uncategorized" as const,
-		limit: 250,
+		limit: 50,
 		...(debouncedUncategorizedSearch?.trim() && {
 			search: debouncedUncategorizedSearch,
 		}),
@@ -81,34 +81,50 @@ export function useCategorization(): UseCategorization {
 		...(filters.uncategorized.region !== "all" && {
 			region: filters.uncategorized.region,
 		}),
-	};
+	}), [debouncedUncategorizedSearch, filters.uncategorized.type, filters.uncategorized.region]);
 
+	// Use infinite queries for better performance with large datasets
 	const {
 		data: oldResourcesData,
 		isLoading: oldLoading,
-		refetch: refetchOld,
-	} = api.resources.categorized.useQuery(oldQueryInput, {
-		staleTime: 2 * 60 * 1000, // 2 minutes
-		keepPreviousData: true, // Keep previous data while fetching new
-	});
+		fetchNextPage: fetchNextOldPage,
+		hasNextPage: hasNextOldPage,
+		isFetchingNextPage: isFetchingNextOldPage,
+	} = api.resources.categorizedInfinite.useInfiniteQuery(
+		oldQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 2 * 60 * 1000,
+		}
+	);
 
 	const {
 		data: newResourcesData,
 		isLoading: newLoading,
-		refetch: refetchNew,
-	} = api.resources.categorized.useQuery(newQueryInput, {
-		staleTime: 2 * 60 * 1000,
-		keepPreviousData: true,
-	});
+		fetchNextPage: fetchNextNewPage,
+		hasNextPage: hasNextNewPage,
+		isFetchingNextPage: isFetchingNextNewPage,
+	} = api.resources.categorizedInfinite.useInfiniteQuery(
+		newQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 2 * 60 * 1000,
+		}
+	);
 
 	const {
 		data: uncategorizedResourcesData,
 		isLoading: uncategorizedLoading,
-		refetch: refetchUncategorized,
-	} = api.resources.categorized.useQuery(uncategorizedQueryInput, {
-		staleTime: 2 * 60 * 1000,
-		keepPreviousData: true,
-	});
+		fetchNextPage: fetchNextUncategorizedPage,
+		hasNextPage: hasNextUncategorizedPage,
+		isFetchingNextPage: isFetchingNextUncategorizedPage,
+	} = api.resources.categorizedInfinite.useInfiniteQuery(
+		uncategorizedQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 2 * 60 * 1000,
+		}
+	);
 
 	// Get utils for optimistic updates
 	const utils = api.useUtils();
@@ -201,10 +217,18 @@ export function useCategorization(): UseCategorization {
 		},
 	});
 
-	// Extract resources from API responses
-	const oldResources = oldResourcesData?.resources || [];
-	const newResources = newResourcesData?.resources || [];
-	const uncategorizedResources = uncategorizedResourcesData?.resources || [];
+	// Extract and flatten resources from infinite query pages
+	const oldResources = useMemo(() => {
+		return oldResourcesData?.pages.flatMap(page => page.resources) || [];
+	}, [oldResourcesData]);
+
+	const newResources = useMemo(() => {
+		return newResourcesData?.pages.flatMap(page => page.resources) || [];
+	}, [newResourcesData]);
+
+	const uncategorizedResources = useMemo(() => {
+		return uncategorizedResourcesData?.pages.flatMap(page => page.resources) || [];
+	}, [uncategorizedResourcesData]);
 
 	// Resource sorting function (filtering now done server-side)
 	const sortResources = useCallback(
@@ -253,6 +277,30 @@ export function useCategorization(): UseCategorization {
 		[oldResources, newResources, uncategorizedResources, sortResources],
 	);
 
+	// Background prefetching - automatically fetch next page when approaching end
+	useEffect(() => {
+		const prefetchTimer = setTimeout(() => {
+			// Prefetch next old resources page if we have more than 25 resources and there's more to fetch
+			if (oldResources.length > 25 && hasNextOldPage && !isFetchingNextOldPage) {
+				fetchNextOldPage();
+			}
+			// Prefetch next new resources page
+			if (newResources.length > 25 && hasNextNewPage && !isFetchingNextNewPage) {
+				fetchNextNewPage();
+			}
+			// Prefetch next uncategorized resources page
+			if (uncategorizedResources.length > 25 && hasNextUncategorizedPage && !isFetchingNextUncategorizedPage) {
+				fetchNextUncategorizedPage();
+			}
+		}, 1500); // Wait 1.5 seconds before prefetching
+
+		return () => clearTimeout(prefetchTimer);
+	}, [
+		oldResources.length, hasNextOldPage, isFetchingNextOldPage, fetchNextOldPage,
+		newResources.length, hasNextNewPage, isFetchingNextNewPage, fetchNextNewPage,
+		uncategorizedResources.length, hasNextUncategorizedPage, isFetchingNextUncategorizedPage, fetchNextUncategorizedPage
+	]);
+
 	// Get unique values for filters
 	const allResources = useMemo(
 		() => [...oldResources, ...newResources, ...uncategorizedResources],
@@ -272,10 +320,8 @@ export function useCategorization(): UseCategorization {
 	// Refetch all data
 	const refetchAll = useCallback(() => {
 		refetchStats();
-		refetchOld();
-		refetchNew();
-		refetchUncategorized();
-	}, [refetchStats, refetchOld, refetchNew, refetchUncategorized]);
+		utils.resources.categorizedInfinite.invalidate();
+	}, [refetchStats, utils]);
 
 	// Filter actions
 	const updateFilter = useCallback(
@@ -458,6 +504,23 @@ export function useCategorization(): UseCategorization {
 			old: oldLoading,
 			new: newLoading,
 			uncategorized: uncategorizedLoading,
+		},
+
+		// Infinite scroll functions
+		fetchNextPage: {
+			old: fetchNextOldPage,
+			new: fetchNextNewPage,
+			uncategorized: fetchNextUncategorizedPage,
+		},
+		hasNextPage: {
+			old: hasNextOldPage,
+			new: hasNextNewPage,
+			uncategorized: hasNextUncategorizedPage,
+		},
+		isFetchingNextPage: {
+			old: isFetchingNextOldPage,
+			new: isFetchingNextNewPage,
+			uncategorized: isFetchingNextUncategorizedPage,
 		},
 
 		// Actions

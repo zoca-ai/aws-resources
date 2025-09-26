@@ -118,6 +118,23 @@ export interface UseCategorization {
 		uncategorized: boolean;
 	};
 
+	// Infinite scroll functions
+	fetchNextPage: {
+		old: () => void;
+		new: () => void;
+		uncategorized: () => void;
+	};
+	hasNextPage: {
+		old: boolean;
+		new: boolean;
+		uncategorized: boolean;
+	};
+	isFetchingNextPage: {
+		old: boolean;
+		new: boolean;
+		uncategorized: boolean;
+	};
+
 	// Actions
 	updateFilter: (
 		category: Category,

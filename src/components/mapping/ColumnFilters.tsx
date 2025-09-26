@@ -19,6 +19,8 @@ interface MappingColumnFiltersProps {
 	onTypeFilterChange: (value: string) => void;
 	regionFilter: string;
 	onRegionFilterChange: (value: string) => void;
+	mappingStatusFilter: string;
+	onMappingStatusFilterChange: (value: string) => void;
 	uniqueTypes: string[];
 	uniqueRegions: string[];
 	onClearFilters: () => void;
@@ -33,6 +35,8 @@ export const MappingColumnFilters: React.FC<MappingColumnFiltersProps> = ({
 	onTypeFilterChange,
 	regionFilter,
 	onRegionFilterChange,
+	mappingStatusFilter,
+	onMappingStatusFilterChange,
 	uniqueTypes,
 	uniqueRegions,
 	onClearFilters,
@@ -40,7 +44,7 @@ export const MappingColumnFilters: React.FC<MappingColumnFiltersProps> = ({
 	disabled = false,
 }) => {
 	const hasActiveFilters =
-		searchTerm !== "" || typeFilter !== "all" || regionFilter !== "all";
+		searchTerm !== "" || typeFilter !== "all" || regionFilter !== "all" || mappingStatusFilter !== "all";
 
 	return (
 		<div className="space-y-3 border-b p-3 ">
@@ -58,6 +62,21 @@ export const MappingColumnFilters: React.FC<MappingColumnFiltersProps> = ({
 
 			{/* Filters Row */}
 			<div className="flex gap-2">
+				<Select
+					value={mappingStatusFilter}
+					onValueChange={onMappingStatusFilterChange}
+					disabled={disabled}
+				>
+					<SelectTrigger className="h-8 flex-1 text-xs">
+						<SelectValue placeholder="Status" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All Resources</SelectItem>
+						<SelectItem value="unmapped">Unmapped Only</SelectItem>
+						<SelectItem value="mapped">Mapped Only</SelectItem>
+					</SelectContent>
+				</Select>
+
 				<Select
 					value={typeFilter}
 					onValueChange={onTypeFilterChange}
@@ -113,6 +132,11 @@ export const MappingColumnFilters: React.FC<MappingColumnFiltersProps> = ({
 					{searchTerm && (
 						<Badge variant="secondary" className="text-xs">
 							Search: {searchTerm}
+						</Badge>
+					)}
+					{mappingStatusFilter !== "all" && (
+						<Badge variant="secondary" className="text-xs">
+							Status: {mappingStatusFilter === "unmapped" ? "Unmapped Only" : "Mapped Only"}
 						</Badge>
 					)}
 					{typeFilter !== "all" && (

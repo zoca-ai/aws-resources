@@ -50,7 +50,6 @@ export default function ResourcesPage() {
 		refetch,
 	} = api.resources.list.useQuery(queryInput, {
 		staleTime: 2 * 60 * 1000, // 2 minutes
-		keepPreviousData: true, // Keep showing old data while fetching new
 		refetchOnWindowFocus: true,
 	});
 

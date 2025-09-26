@@ -10,7 +10,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useMapping } from "@/hooks/use-mapping";
 import type { MappingResource } from "@/hooks/use-mapping";
 import { MAPPING_CONFIGS } from "@/lib/constants/mapping";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 
 export default function MappingPage() {
 	const mapping = useMapping();
@@ -28,11 +28,13 @@ export default function MappingPage() {
 		search: "",
 		type: "all",
 		region: "all",
+		mappingStatus: "unmapped", // Default to unmapped only for mapping page
 	});
 	const [newFilters, setNewFilters] = useState({
 		search: "",
 		type: "all",
 		region: "all",
+		mappingStatus: "unmapped", // Default to unmapped only for mapping page
 	});
 
 	// Get categorized resources from the hook
@@ -47,9 +49,6 @@ export default function MappingPage() {
 	// Filter resources for each column
 	const filteredOldResources = useMemo(() => {
 		return oldResources.filter((resource: MappingResource) => {
-			// Exclude already mapped resources
-			const isAlreadyMapped = resource.mappingStatus === "mapped";
-
 			const matchesSearch =
 				!oldFilters.search ||
 				resource.resourceName
@@ -62,16 +61,17 @@ export default function MappingPage() {
 				oldFilters.type === "all" || resource.resourceType === oldFilters.type;
 			const matchesRegion =
 				oldFilters.region === "all" || resource.region === oldFilters.region;
+			const matchesMappingStatus =
+				oldFilters.mappingStatus === "all" ||
+				(oldFilters.mappingStatus === "unmapped" && resource.mappingStatus !== "mapped") ||
+				(oldFilters.mappingStatus === "mapped" && resource.mappingStatus === "mapped");
 
-			return !isAlreadyMapped && matchesSearch && matchesType && matchesRegion;
+			return matchesSearch && matchesType && matchesRegion && matchesMappingStatus;
 		});
 	}, [oldResources, oldFilters]);
 
 	const filteredNewResources = useMemo(() => {
 		const filtered = newResources.filter((resource: MappingResource) => {
-			// Exclude already mapped resources (both as source and as target)
-			const isAlreadyMapped = resource.mappingStatus === "mapped";
-
 			const matchesSearch =
 				!newFilters.search ||
 				resource.resourceName
@@ -84,8 +84,12 @@ export default function MappingPage() {
 				newFilters.type === "all" || resource.resourceType === newFilters.type;
 			const matchesRegion =
 				newFilters.region === "all" || resource.region === newFilters.region;
+			const matchesMappingStatus =
+				newFilters.mappingStatus === "all" ||
+				(newFilters.mappingStatus === "unmapped" && resource.mappingStatus !== "mapped") ||
+				(newFilters.mappingStatus === "mapped" && resource.mappingStatus === "mapped");
 
-			return !isAlreadyMapped && matchesSearch && matchesType && matchesRegion;
+			return matchesSearch && matchesType && matchesRegion && matchesMappingStatus;
 		});
 
 		// If we have selected old resources, optionally filter by same type for easier mapping
@@ -95,6 +99,39 @@ export default function MappingPage() {
 
 		return filtered;
 	}, [newResources, newFilters, selectedOldResources]);
+
+	// Smart pagination - preload next pages based on user interaction patterns
+	const smartPreload = useCallback(() => {
+		// Preload more old resources when user has selected any old resources
+		if (selectedOldResources.length > 0 && mapping.hasNextPage.old && !mapping.isFetchingNextPage.old) {
+			mapping.fetchNextPage.old();
+		}
+		// Preload more new resources when user is actively searching in new column
+		if (newFilters.search && mapping.hasNextPage.new && !mapping.isFetchingNextPage.new) {
+			mapping.fetchNextPage.new();
+		}
+		// Preload when near the bottom of filtered results
+		if (filteredOldResources.length > 30 && mapping.hasNextPage.old && !mapping.isFetchingNextPage.old) {
+			mapping.fetchNextPage.old();
+		}
+		if (filteredNewResources.length > 30 && mapping.hasNextPage.new && !mapping.isFetchingNextPage.new) {
+			mapping.fetchNextPage.new();
+		}
+	}, [
+		selectedOldResources.length,
+		newFilters.search,
+		filteredOldResources.length,
+		filteredNewResources.length,
+		mapping.hasNextPage,
+		mapping.isFetchingNextPage,
+		mapping.fetchNextPage
+	]);
+
+	// Trigger smart preloading when user interactions suggest more data might be needed
+	useEffect(() => {
+		const timer = setTimeout(smartPreload, 800); // Debounce preloading
+		return () => clearTimeout(timer);
+	}, [smartPreload]);
 
 	// Handlers
 	const handleResourceViewDetails = (resource: MappingResource) => {
@@ -209,10 +246,14 @@ export default function MappingPage() {
 					onRegionFilterChange={(value) =>
 						setOldFilters((prev) => ({ ...prev, region: value }))
 					}
+					mappingStatusFilter={oldFilters.mappingStatus}
+					onMappingStatusFilterChange={(value) =>
+						setOldFilters((prev) => ({ ...prev, mappingStatus: value }))
+					}
 					uniqueTypes={mapping.uniqueTypes}
 					uniqueRegions={mapping.uniqueRegions}
 					onClearFilters={() =>
-						setOldFilters({ search: "", type: "all", region: "all" })
+						setOldFilters({ search: "", type: "all", region: "all", mappingStatus: "unmapped" })
 					}
 					resources={filteredOldResources}
 					selectedResources={new Set(selectedOldResources)}
@@ -262,10 +303,14 @@ export default function MappingPage() {
 					onRegionFilterChange={(value) =>
 						setNewFilters((prev) => ({ ...prev, region: value }))
 					}
+					mappingStatusFilter={newFilters.mappingStatus}
+					onMappingStatusFilterChange={(value) =>
+						setNewFilters((prev) => ({ ...prev, mappingStatus: value }))
+					}
 					uniqueTypes={mapping.uniqueTypes}
 					uniqueRegions={mapping.uniqueRegions}
 					onClearFilters={() =>
-						setNewFilters({ search: "", type: "all", region: "all" })
+						setNewFilters({ search: "", type: "all", region: "all", mappingStatus: "unmapped" })
 					}
 					resources={filteredNewResources}
 					selectedResources={new Set(selectedNewResources)}

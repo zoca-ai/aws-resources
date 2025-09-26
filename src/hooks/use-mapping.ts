@@ -2,7 +2,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { DEBOUNCE_DELAY } from "@/lib/constants/categorization";
 import type { Category, Resource } from "@/lib/types/categorization";
 import { type RouterOutputs, api } from "@/trpc/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 // Mapping-specific types
@@ -76,6 +76,23 @@ export interface UseMapping {
 		mappings: boolean;
 	};
 
+	// Infinite scroll functions
+	fetchNextPage: {
+		old: () => void;
+		new: () => void;
+		mappings: () => void;
+	};
+	hasNextPage: {
+		old: boolean;
+		new: boolean;
+		mappings: boolean;
+	};
+	isFetchingNextPage: {
+		old: boolean;
+		new: boolean;
+		mappings: boolean;
+	};
+
 	// Actions
 	updateFilter: (field: keyof FilterState, value: string) => void;
 	clearFilters: () => void;
@@ -86,6 +103,10 @@ export interface UseMapping {
 		resourceId: string,
 		targetResourceId: string,
 		notes?: string,
+	) => Promise<void>;
+	handleUpdateMappingNotes: (
+		mappingId: number,
+		notes: string,
 	) => Promise<void>;
 	handleManyToManyResourceMap: (
 		sourceResourceId: string,
@@ -131,10 +152,10 @@ export function useMapping(): UseMapping {
 	// Debounced search
 	const debouncedSearch = useDebounce(filters.search, DEBOUNCE_DELAY);
 
-	// Memoize query inputs to prevent unnecessary refetches
+	// Memoize query inputs with infinite scroll support
 	const oldQueryInput = useMemo(() => ({
 		category: "old" as const,
-		limit: 250,
+		limit: 50, // Smaller chunks for infinite scroll
 		...(debouncedSearch?.trim() && { search: debouncedSearch }),
 		...(filters.type !== "all" && { type: filters.type }),
 		...(filters.region !== "all" && { region: filters.region }),
@@ -142,48 +163,81 @@ export function useMapping(): UseMapping {
 
 	const newQueryInput = useMemo(() => ({
 		category: "new" as const,
-		limit: 250,
+		limit: 50,
 		...(debouncedSearch?.trim() && { search: debouncedSearch }),
 		...(filters.type !== "all" && { type: filters.type }),
 		...(filters.region !== "all" && { region: filters.region }),
 	}), [debouncedSearch, filters.type, filters.region]);
 
 	const mappingsQueryInput = useMemo(() => ({
-		limit: 250,
+		limit: 100, // Load more mappings but still chunked
 	}), []);
 
-	// Data fetching with tRPC - optimized caching
+	// Use infinite queries for better performance
 	const {
 		data: oldResourcesData,
 		isLoading: oldLoading,
-		refetch: refetchOld,
-	} = api.resources.categorized.useQuery(oldQueryInput, {
-		staleTime: 2 * 60 * 1000, // 2 minutes
-		keepPreviousData: true,
-	});
+		fetchNextPage: fetchNextOldPage,
+		hasNextPage: hasNextOldPage,
+		isFetchingNextPage: isFetchingNextOldPage,
+	} = api.resources.categorizedInfinite.useInfiniteQuery(
+		oldQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 2 * 60 * 1000,
+		}
+	);
 
 	const {
 		data: newResourcesData,
 		isLoading: newLoading,
-		refetch: refetchNew,
-	} = api.resources.categorized.useQuery(newQueryInput, {
-		staleTime: 2 * 60 * 1000,
-		keepPreviousData: true,
-	});
+		fetchNextPage: fetchNextNewPage,
+		hasNextPage: hasNextNewPage,
+		isFetchingNextPage: isFetchingNextNewPage,
+	} = api.resources.categorizedInfinite.useInfiniteQuery(
+		newQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 2 * 60 * 1000,
+		}
+	);
 
 	const {
-		data: mappingsData,
+		data: mappingsResponse,
 		isLoading: mappingsLoading,
 		refetch: refetchMappings,
-	} = api.migration.mappings.useQuery(mappingsQueryInput, {
-		staleTime: 1 * 60 * 1000, // 1 minute - mappings change more frequently
-		refetchOnWindowFocus: true,
-	});
+		fetchNextPage: fetchNextMappingsPage,
+		hasNextPage: hasNextMappingsPage,
+		isFetchingNextPage: isFetchingNextMappingsPage,
+	} = api.migration.mappingsInfinite.useInfiniteQuery(
+		mappingsQueryInput,
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor,
+			staleTime: 1 * 60 * 1000,
+			refetchOnWindowFocus: true,
+		}
+	);
+
 
 	// Get utils for optimistic updates
 	const utils = api.useUtils();
 
 	// Mutations with optimistic updates
+	const updateMapping = api.migration.updateMapping.useMutation({
+		onMutate: async () => {
+			toast.loading('Updating mapping...', { id: 'update-mapping' });
+		},
+		onError: (error) => {
+			toast.error(`Failed to update mapping: ${error.message}`, {
+				id: 'update-mapping',
+			});
+		},
+		onSuccess: () => {
+			toast.success('Mapping updated successfully', { id: 'update-mapping' });
+			utils.migration.mappingsInfinite.invalidate();
+		},
+	});
+
 	const createMapping = api.migration.createMapping.useMutation({
 		onMutate: async (variables) => {
 			// Cancel outgoing refetches
@@ -205,14 +259,22 @@ export function useMapping(): UseMapping {
 			toast.success('Mapping created successfully', { id: 'create-mapping' });
 
 			// Invalidate related queries
-			utils.migration.mappings.invalidate();
+			utils.migration.mappingsInfinite.invalidate();
 		},
 	});
 
-	// Extract resources from API responses
-	const oldResources = oldResourcesData?.resources || [];
-	const newResources = newResourcesData?.resources || [];
-	const mappings = mappingsData?.mappings || [];
+	// Extract and flatten resources from infinite query pages
+	const oldResources = useMemo(() => {
+		return oldResourcesData?.pages.flatMap(page => page.resources) || [];
+	}, [oldResourcesData]);
+
+	const newResources = useMemo(() => {
+		return newResourcesData?.pages.flatMap(page => page.resources) || [];
+	}, [newResourcesData]);
+
+	const mappings = useMemo(() => {
+		return mappingsResponse?.pages.flatMap(page => page.mappings) || [];
+	}, [mappingsResponse]);
 
 	// Transform resources with mapping status
 	const transformResourcesWithMappingStatus = useCallback(
@@ -281,6 +343,25 @@ export function useMapping(): UseMapping {
 		[categorizedResources],
 	);
 
+	// Background prefetching - automatically fetch next page when approaching end
+	useEffect(() => {
+		const prefetchTimer = setTimeout(() => {
+			// Prefetch next old resources page if we have more than 25 resources and there's more to fetch
+			if (oldResources.length > 25 && hasNextOldPage && !isFetchingNextOldPage) {
+				fetchNextOldPage();
+			}
+			// Prefetch next new resources page
+			if (newResources.length > 25 && hasNextNewPage && !isFetchingNextNewPage) {
+				fetchNextNewPage();
+			}
+		}, 1500); // Wait 1.5 seconds before prefetching
+
+		return () => clearTimeout(prefetchTimer);
+	}, [
+		oldResources.length, hasNextOldPage, isFetchingNextOldPage, fetchNextOldPage,
+		newResources.length, hasNextNewPage, isFetchingNextNewPage, fetchNextNewPage
+	]);
+
 	// Filtered resources (apply additional filtering beyond API)
 	const filteredResources = useMemo(() => {
 		return allResources.filter((resource) => {
@@ -348,10 +429,9 @@ export function useMapping(): UseMapping {
 
 	// Refetch all data
 	const refetchAll = useCallback(() => {
-		refetchOld();
-		refetchNew();
-		refetchMappings();
-	}, [refetchOld, refetchNew, refetchMappings]);
+		utils.resources.categorizedInfinite.invalidate();
+		utils.migration.mappingsInfinite.invalidate();
+	}, [utils]);
 
 	// Filter actions
 	const updateFilter = useCallback(
@@ -432,6 +512,22 @@ export function useMapping(): UseMapping {
 			}
 		},
 		[createMapping, refetchAll],
+	);
+
+	const handleUpdateMappingNotes = useCallback(
+		async (mappingId: number, notes: string) => {
+			try {
+				await updateMapping.mutateAsync({
+					id: mappingId,
+					notes,
+				});
+				refetchAll();
+			} catch (error) {
+				console.error("Failed to update mapping notes:", error);
+				toast.error("Failed to update mapping notes");
+			}
+		},
+		[updateMapping, refetchAll],
 	);
 
 	const handleManyToManyResourceMap = useCallback(
@@ -621,6 +717,23 @@ export function useMapping(): UseMapping {
 			mappings: mappingsLoading,
 		},
 
+		// Infinite scroll functions
+		fetchNextPage: {
+			old: fetchNextOldPage,
+			new: fetchNextNewPage,
+			mappings: () => {}, // No infinite scroll for mappings
+		},
+		hasNextPage: {
+			old: hasNextOldPage,
+			new: hasNextNewPage,
+			mappings: false, // No infinite scroll for mappings
+		},
+		isFetchingNextPage: {
+			old: isFetchingNextOldPage,
+			new: isFetchingNextNewPage,
+			mappings: false, // No infinite scroll for mappings
+		},
+
 		// Actions
 		updateFilter,
 		clearFilters,
@@ -628,6 +741,7 @@ export function useMapping(): UseMapping {
 		selectAll,
 		deselectAll,
 		handleResourceMap,
+		handleUpdateMappingNotes,
 		handleManyToManyResourceMap,
 		handleResourceUnmap,
 		handleBulkMap,

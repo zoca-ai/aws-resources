@@ -216,10 +216,11 @@ export const resourcesRouter = createTRPCRouter({
         search: z.string().optional(),
         type: z.string().optional(),
         region: z.string().optional(),
+        mappingStatus: z.enum(["all", "mapped", "unmapped"]).optional(),
       }),
     )
     .query(async ({ input }) => {
-      const { category, page, limit, search, type, region } = input;
+      const { category, page, limit, search, type, region, mappingStatus } = input;
       const offset = (page - 1) * limit;
 
       // Handle uncategorized resources: both explicit "uncategorized" and null/undefined
@@ -246,6 +247,43 @@ export const resourcesRouter = createTRPCRouter({
         );
         if (searchCondition) {
           conditions.push(searchCondition);
+        }
+      }
+
+      // Handle mapping status filtering
+      if (mappingStatus && mappingStatus !== "all") {
+        if (mappingStatus === "mapped") {
+          // Resource is mapped (exists in migration_mappings as source OR is a target)
+          const mappedAsSourceSubquery = db
+            .select({ resourceId: migrationMappings.sourceResourceId })
+            .from(migrationMappings);
+
+          const mappedAsTargetSubquery = db
+            .select({ resourceId: migrationMappingTargets.resourceId })
+            .from(migrationMappingTargets);
+
+          conditions.push(
+            or(
+              inArray(resources.resourceId, mappedAsSourceSubquery),
+              inArray(resources.resourceId, mappedAsTargetSubquery)
+            )
+          );
+        } else if (mappingStatus === "unmapped") {
+          // Resource is NOT mapped (does NOT exist in migration_mappings as source OR target)
+          const mappedAsSourceSubquery = db
+            .select({ resourceId: migrationMappings.sourceResourceId })
+            .from(migrationMappings);
+
+          const mappedAsTargetSubquery = db
+            .select({ resourceId: migrationMappingTargets.resourceId })
+            .from(migrationMappingTargets);
+
+          conditions.push(
+            and(
+              sql`${resources.resourceId} NOT IN (${mappedAsSourceSubquery})`,
+              sql`${resources.resourceId} NOT IN (${mappedAsTargetSubquery})`
+            )
+          );
         }
       }
 
@@ -311,6 +349,148 @@ export const resourcesRouter = createTRPCRouter({
       };
     }),
 
+  // Get resources by specific category with infinite scrolling and filters
+  categorizedInfinite: publicProcedure
+    .input(
+      z.object({
+        category: z.enum(MIGRATION_CATEGORY_VALUES as [string, ...string[]]),
+        limit: z.number().min(1).max(250).default(50),
+        cursor: z.string().optional(),
+        search: z.string().optional(),
+        type: z.string().optional(),
+        region: z.string().optional(),
+        mappingStatus: z.enum(["all", "mapped", "unmapped"]).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { category, limit, cursor, search, type, region, mappingStatus } = input;
+
+      // Handle uncategorized resources: both explicit "uncategorized" and null/undefined
+      const categoryConditions =
+        category === "uncategorized"
+          ? or(
+              eq(resources.migrationCategory, "uncategorized"),
+              isNull(resources.migrationCategory),
+            )
+          : eq(resources.migrationCategory, category);
+
+      const conditions = [categoryConditions];
+
+      if (type && type !== "all")
+        conditions.push(eq(resources.resourceType, type));
+      if (region && region !== "all")
+        conditions.push(eq(resources.region, region));
+
+      if (search) {
+        const searchCondition = or(
+          like(resources.resourceName, `%${search}%`),
+          like(resources.resourceId, `%${search}%`),
+          like(resources.resourceArn, `%${search}%`),
+        );
+        if (searchCondition) {
+          conditions.push(searchCondition);
+        }
+      }
+
+      // Handle cursor for pagination
+      if (cursor) {
+        conditions.push(sql`${resources.id} > ${cursor}`);
+      }
+
+      // Handle mapping status filtering
+      if (mappingStatus && mappingStatus !== "all") {
+        if (mappingStatus === "mapped") {
+          // Resource is mapped (exists in migration_mappings as source OR is a target)
+          const mappedAsSourceSubquery = db
+            .select({ resourceId: migrationMappings.sourceResourceId })
+            .from(migrationMappings);
+
+          const mappedAsTargetSubquery = db
+            .select({ resourceId: migrationMappingTargets.resourceId })
+            .from(migrationMappingTargets);
+
+          conditions.push(
+            or(
+              inArray(resources.resourceId, mappedAsSourceSubquery),
+              inArray(resources.resourceId, mappedAsTargetSubquery)
+            )
+          );
+        } else if (mappingStatus === "unmapped") {
+          // Resource is NOT mapped (does NOT exist in migration_mappings as source OR target)
+          const mappedAsSourceSubquery = db
+            .select({ resourceId: migrationMappings.sourceResourceId })
+            .from(migrationMappings);
+
+          const mappedAsTargetSubquery = db
+            .select({ resourceId: migrationMappingTargets.resourceId })
+            .from(migrationMappingTargets);
+
+          conditions.push(
+            and(
+              sql`${resources.resourceId} NOT IN (${mappedAsSourceSubquery})`,
+              sql`${resources.resourceId} NOT IN (${mappedAsTargetSubquery})`
+            )
+          );
+        }
+      }
+
+      const whereCondition =
+        conditions.length > 0 ? and(...conditions) : undefined;
+
+      const resourcesList = await db
+        .select()
+        .from(resources)
+        .where(whereCondition)
+        .limit(limit + 1) // Fetch one extra to determine if there's a next page
+        .orderBy(resources.id, resources.resourceType, resources.resourceName);
+
+      let nextCursor: string | undefined = undefined;
+      if (resourcesList.length > limit) {
+        const nextItem = resourcesList.pop()!;
+        nextCursor = nextItem.id.toString();
+      }
+
+      // Fetch tags for each resource
+      const resourcesWithTags = await Promise.all(
+        resourcesList.map(async (resource) => {
+          const tags = await db
+            .select({
+              key: resourceTags.key,
+              value: resourceTags.value,
+            })
+            .from(resourceTags)
+            .where(eq(resourceTags.resourceId, resource.resourceId));
+
+          return {
+            ...resource,
+            // Parse JSON fields if they're strings
+            properties:
+              typeof resource.properties === "string"
+                ? JSON.parse(resource.properties)
+                : resource.properties,
+            configuration:
+              typeof resource.configuration === "string"
+                ? JSON.parse(resource.configuration)
+                : resource.configuration,
+            security:
+              typeof resource.security === "string"
+                ? JSON.parse(resource.security)
+                : resource.security,
+            state:
+              typeof resource.state === "string"
+                ? JSON.parse(resource.state)
+                : resource.state,
+            tags,
+          };
+        }),
+      );
+
+      return {
+        resources: resourcesWithTags,
+        nextCursor
+      };
+    }),
+
   // Get all unique resource types with counts
   types: publicProcedure.query(async () => {
     const types = await db
@@ -323,6 +503,20 @@ export const resourcesRouter = createTRPCRouter({
       .orderBy(desc(count()));
 
     return types;
+  }),
+
+  // Get all unique regions with counts
+  regions: publicProcedure.query(async () => {
+    const regions = await db
+      .select({
+        region: resources.region,
+        count: count(),
+      })
+      .from(resources)
+      .groupBy(resources.region)
+      .orderBy(desc(count()));
+
+    return regions;
   }),
 
   // Get specific resource by ID
