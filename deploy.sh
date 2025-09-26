@@ -9,6 +9,12 @@ PROFILE="staging"
 REGION="ap-south-1"
 
 echo "🏗️  Building Docker image..."
+# Ensure .env.production exists
+if [ ! -f ".env.production" ]; then
+    echo "❌ .env.production file not found! Please create it with your production environment variables."
+    exit 1
+fi
+
 docker build -t ${IMAGE_NAME}:latest .
 
 echo "🏷️  Tagging image for ECR..."
