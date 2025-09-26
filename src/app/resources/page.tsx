@@ -33,26 +33,39 @@ export default function ResourcesPage() {
 	// Debounce search input
 	const debouncedSearch = useDebounce(searchInput, 500);
 
-	// Fetch resources with pagination and filters
-	const {
-		data: resourcesData,
-		isLoading: loading,
-		error,
-		refetch,
-	} = api.resources.list.useQuery({
+	// Memoize query input to prevent unnecessary refetches
+	const queryInput = useMemo(() => ({
 		page,
 		limit,
 		type: selectedType || undefined,
 		region: selectedRegion || undefined,
 		search: debouncedSearch || undefined,
+	}), [page, limit, selectedType, selectedRegion, debouncedSearch]);
+
+	// Fetch resources with optimized caching
+	const {
+		data: resourcesData,
+		isLoading: loading,
+		error,
+		refetch,
+	} = api.resources.list.useQuery(queryInput, {
+		staleTime: 2 * 60 * 1000, // 2 minutes
+		keepPreviousData: true, // Keep showing old data while fetching new
+		refetchOnWindowFocus: true,
 	});
 
 	// Extract resources and pagination from tRPC response
 	const resources = resourcesData?.resources || [];
 	const pagination = resourcesData?.pagination;
 
-	// Fetch stats for getting all unique resource types
-	const { data: stats } = api.stats.summary.useQuery();
+	// Fetch stats with caching for getting all unique resource types
+	const { data: stats } = api.stats.summary.useQuery(void 0, {
+		staleTime: 5 * 60 * 1000, // 5 minutes - resource types don't change often
+		refetchOnWindowFocus: false,
+	});
+
+	// Get utils for prefetching and cache management
+	const utils = api.useUtils();
 
 	// Refresh resource mutation
 	const refreshResourceMutation = api.collector.refreshResource.useMutation();
@@ -63,12 +76,26 @@ export default function ResourcesPage() {
 	}, [debouncedSearch, selectedType, selectedRegion]);
 
 	const handleRefresh = useCallback(() => {
-		toast.promise(refetch(), {
-			loading: "Refreshing resources...",
-			success: "Resources updated",
-			error: "Failed to refresh",
-		});
-	}, [refetch]);
+		toast.promise(
+			Promise.all([
+				utils.resources.list.invalidate(),
+				utils.stats.summary.invalidate(),
+			]),
+			{
+				loading: "Refreshing resources...",
+				success: "Resources updated",
+				error: "Failed to refresh",
+			}
+		);
+	}, [utils]);
+
+	// Prefetch next page for better UX
+	useEffect(() => {
+		if (pagination && page < pagination.pages) {
+			const nextQueryInput = { ...queryInput, page: page + 1 };
+			utils.resources.list.prefetch(nextQueryInput);
+		}
+	}, [pagination, page, queryInput, utils]);
 
 	const handleClearFilters = useCallback(() => {
 		setSearchInput("");
@@ -251,7 +278,7 @@ export default function ResourcesPage() {
 
 			{/* Resources Grid */}
 			<div className="grid gap-4">
-				{loading && !resources ? (
+				{(loading && resources.length === 0) ? (
 					<div className="space-y-4">
 						{Array.from({ length: limit }).map((_, i) => (
 							<Card key={i} className="animate-pulse">
@@ -293,7 +320,7 @@ export default function ResourcesPage() {
 							</Card>
 						))}
 					</div>
-				) : resources && resources.length > 0 ? (
+				) : resources.length > 0 ? (
 					resources.map((resource) => (
 						<Card
 							key={resource.id}

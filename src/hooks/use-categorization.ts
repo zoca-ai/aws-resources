@@ -42,12 +42,15 @@ export function useCategorization(): UseCategorization {
 		DEBOUNCE_DELAY,
 	);
 
-	// Data fetching with tRPC
+	// Data fetching with tRPC - optimized with better caching
 	const {
 		data: stats,
 		isLoading: statsLoading,
 		refetch: refetchStats,
-	} = api.resources.categories.useQuery();
+	} = api.resources.categories.useQuery(void 0, {
+		staleTime: 3 * 60 * 1000, // 3 minutes
+		refetchOnWindowFocus: true,
+	});
 
 	// Build query inputs, only include optional fields if they have values
 	const oldQueryInput = {
@@ -84,23 +87,119 @@ export function useCategorization(): UseCategorization {
 		data: oldResourcesData,
 		isLoading: oldLoading,
 		refetch: refetchOld,
-	} = api.resources.categorized.useQuery(oldQueryInput);
+	} = api.resources.categorized.useQuery(oldQueryInput, {
+		staleTime: 2 * 60 * 1000, // 2 minutes
+		keepPreviousData: true, // Keep previous data while fetching new
+	});
 
 	const {
 		data: newResourcesData,
 		isLoading: newLoading,
 		refetch: refetchNew,
-	} = api.resources.categorized.useQuery(newQueryInput);
+	} = api.resources.categorized.useQuery(newQueryInput, {
+		staleTime: 2 * 60 * 1000,
+		keepPreviousData: true,
+	});
 
 	const {
 		data: uncategorizedResourcesData,
 		isLoading: uncategorizedLoading,
 		refetch: refetchUncategorized,
-	} = api.resources.categorized.useQuery(uncategorizedQueryInput);
+	} = api.resources.categorized.useQuery(uncategorizedQueryInput, {
+		staleTime: 2 * 60 * 1000,
+		keepPreviousData: true,
+	});
 
-	// Mutations
-	const categorizeResource = api.resources.categorize.useMutation();
-	const bulkCategorizeResources = api.resources.bulkCategorize.useMutation();
+	// Get utils for optimistic updates
+	const utils = api.useUtils();
+
+	// Mutations with optimistic updates
+	const categorizeResource = api.resources.categorize.useMutation({
+		onMutate: async (variables) => {
+			// Cancel outgoing refetches to avoid overwriting optimistic update
+			await Promise.all([
+				utils.resources.categories.cancel(),
+				utils.resources.categorized.cancel(),
+			]);
+
+			// Snapshot previous values
+			const previousStats = utils.resources.categories.getData();
+			const previousOld = utils.resources.categorized.getData(oldQueryInput);
+			const previousNew = utils.resources.categorized.getData(newQueryInput);
+			const previousUncategorized = utils.resources.categorized.getData(uncategorizedQueryInput);
+
+			// Optimistically update the UI
+			toast.loading(`Categorizing resource as ${variables.category}...`, {
+				id: `categorize-${variables.resourceId}`,
+			});
+
+			return {
+				previousStats,
+				previousOld,
+				previousNew,
+				previousUncategorized,
+				variables,
+			};
+		},
+		onError: (error, variables, context) => {
+			// Rollback optimistic updates on error
+			if (context) {
+				if (context.previousStats) {
+					utils.resources.categories.setData(undefined, context.previousStats);
+				}
+				if (context.previousOld) {
+					utils.resources.categorized.setData(oldQueryInput, context.previousOld);
+				}
+				if (context.previousNew) {
+					utils.resources.categorized.setData(newQueryInput, context.previousNew);
+				}
+				if (context.previousUncategorized) {
+					utils.resources.categorized.setData(uncategorizedQueryInput, context.previousUncategorized);
+				}
+			}
+
+			toast.error(`Failed to categorize resource: ${error.message}`, {
+				id: `categorize-${variables.resourceId}`,
+			});
+		},
+		onSuccess: (data, variables) => {
+			toast.success(`Resource categorized as ${variables.category}`, {
+				id: `categorize-${variables.resourceId}`,
+			});
+
+			// Invalidate queries to get fresh data
+			utils.resources.categories.invalidate();
+			utils.resources.categorized.invalidate();
+		},
+	});
+
+	const bulkCategorizeResources = api.resources.bulkCategorize.useMutation({
+		onMutate: async (variables) => {
+			await Promise.all([
+				utils.resources.categories.cancel(),
+				utils.resources.categorized.cancel(),
+			]);
+
+			toast.loading(`Categorizing ${variables.resourceIds.length} resources...`, {
+				id: 'bulk-categorize',
+			});
+
+			return { variables };
+		},
+		onError: (error, variables) => {
+			toast.error(`Failed to categorize resources: ${error.message}`, {
+				id: 'bulk-categorize',
+			});
+		},
+		onSuccess: (data, variables) => {
+			toast.success(`Successfully categorized ${variables.resourceIds.length} resources`, {
+				id: 'bulk-categorize',
+			});
+
+			utils.resources.categories.invalidate();
+			utils.resources.categorized.invalidate();
+		},
+	});
 
 	// Extract resources from API responses
 	const oldResources = oldResourcesData?.resources || [];

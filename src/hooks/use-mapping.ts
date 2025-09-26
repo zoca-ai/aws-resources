@@ -131,41 +131,83 @@ export function useMapping(): UseMapping {
 	// Debounced search
 	const debouncedSearch = useDebounce(filters.search, DEBOUNCE_DELAY);
 
-	// Data fetching with tRPC
-	const {
-		data: oldResourcesData,
-		isLoading: oldLoading,
-		refetch: refetchOld,
-	} = api.resources.categorized.useQuery({
-		category: "old",
+	// Memoize query inputs to prevent unnecessary refetches
+	const oldQueryInput = useMemo(() => ({
+		category: "old" as const,
 		limit: 250,
 		...(debouncedSearch?.trim() && { search: debouncedSearch }),
 		...(filters.type !== "all" && { type: filters.type }),
 		...(filters.region !== "all" && { region: filters.region }),
+	}), [debouncedSearch, filters.type, filters.region]);
+
+	const newQueryInput = useMemo(() => ({
+		category: "new" as const,
+		limit: 250,
+		...(debouncedSearch?.trim() && { search: debouncedSearch }),
+		...(filters.type !== "all" && { type: filters.type }),
+		...(filters.region !== "all" && { region: filters.region }),
+	}), [debouncedSearch, filters.type, filters.region]);
+
+	const mappingsQueryInput = useMemo(() => ({
+		limit: 250,
+	}), []);
+
+	// Data fetching with tRPC - optimized caching
+	const {
+		data: oldResourcesData,
+		isLoading: oldLoading,
+		refetch: refetchOld,
+	} = api.resources.categorized.useQuery(oldQueryInput, {
+		staleTime: 2 * 60 * 1000, // 2 minutes
+		keepPreviousData: true,
 	});
 
 	const {
 		data: newResourcesData,
 		isLoading: newLoading,
 		refetch: refetchNew,
-	} = api.resources.categorized.useQuery({
-		category: "new",
-		limit: 250,
-		...(debouncedSearch?.trim() && { search: debouncedSearch }),
-		...(filters.type !== "all" && { type: filters.type }),
-		...(filters.region !== "all" && { region: filters.region }),
+	} = api.resources.categorized.useQuery(newQueryInput, {
+		staleTime: 2 * 60 * 1000,
+		keepPreviousData: true,
 	});
 
 	const {
 		data: mappingsData,
 		isLoading: mappingsLoading,
 		refetch: refetchMappings,
-	} = api.migration.mappings.useQuery({
-		limit: 250,
+	} = api.migration.mappings.useQuery(mappingsQueryInput, {
+		staleTime: 1 * 60 * 1000, // 1 minute - mappings change more frequently
+		refetchOnWindowFocus: true,
 	});
 
-	// Mutations
-	const createMapping = api.migration.createMapping.useMutation();
+	// Get utils for optimistic updates
+	const utils = api.useUtils();
+
+	// Mutations with optimistic updates
+	const createMapping = api.migration.createMapping.useMutation({
+		onMutate: async (variables) => {
+			// Cancel outgoing refetches
+			await Promise.all([
+				utils.migration.mappings.cancel(),
+				utils.resources.categorized.cancel(),
+			]);
+
+			toast.loading('Creating mapping...', { id: 'create-mapping' });
+
+			return { variables };
+		},
+		onError: (error, variables) => {
+			toast.error(`Failed to create mapping: ${error.message}`, {
+				id: 'create-mapping',
+			});
+		},
+		onSuccess: (data, variables) => {
+			toast.success('Mapping created successfully', { id: 'create-mapping' });
+
+			// Invalidate related queries
+			utils.migration.mappings.invalidate();
+		},
+	});
 
 	// Extract resources from API responses
 	const oldResources = oldResourcesData?.resources || [];

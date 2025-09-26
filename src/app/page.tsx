@@ -182,28 +182,49 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+	// Optimized data fetching with proper caching
 	const {
 		data: migrationStats,
 		isLoading: migrationLoading,
 		error: migrationError,
 		refetch: refetchMigration,
-	} = api.migration.statistics.useQuery();
+	} = api.migration.statistics.useQuery(void 0, {
+		staleTime: 3 * 60 * 1000, // 3 minutes - migration stats don't change frequently
+		refetchOnWindowFocus: true,
+		refetchInterval: 5 * 60 * 1000, // Background refresh every 5 minutes
+	});
+
 	const {
 		data: generalStats,
 		isLoading: generalLoading,
 		error: generalError,
 		refetch: refetchGeneral,
-	} = api.stats.summary.useQuery();
+	} = api.stats.summary.useQuery(void 0, {
+		staleTime: 2 * 60 * 1000, // 2 minutes - resource counts change more often
+		refetchOnWindowFocus: true,
+		refetchInterval: 3 * 60 * 1000, // Background refresh every 3 minutes
+	});
+
 	const {
 		data: accountInfo,
 		isLoading: accountLoading,
 		error: accountError,
 		refetch: refetchAccount,
-	} = api.account.info.useQuery();
+	} = api.account.info.useQuery(void 0, {
+		staleTime: 15 * 60 * 1000, // 15 minutes - account info is static
+		refetchOnWindowFocus: false, // Don't refetch account info on focus
+	});
+
+	// Get utils for cache management
+	const utils = api.useUtils();
 
 	const handleRefresh = async () => {
 		toast.promise(
-			Promise.all([refetchMigration(), refetchGeneral(), refetchAccount()]),
+			Promise.all([
+				utils.migration.statistics.invalidate(),
+				utils.stats.summary.invalidate(),
+				utils.account.info.invalidate(),
+			]),
 			{
 				loading: "Refreshing data...",
 				success: "Data refreshed successfully",

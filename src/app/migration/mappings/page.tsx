@@ -4,6 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	Select,
 	SelectContent,
@@ -13,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { type RouterOutputs, api } from "@/trpc/react";
 import React, { useState, useMemo } from "react";
+import { toast } from "sonner";
 
 // Type for migration mapping from tRPC
 type MigrationMapping = RouterOutputs["migration"]["mappings"]["mappings"][0];
@@ -26,12 +35,15 @@ import {
 	BarChart3,
 	CheckCircle,
 	Clock,
+	Edit,
 	GitBranch,
 	Merge,
+	Save,
 	Search,
 	Shuffle,
 	Split,
 	Trash2,
+	X,
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -84,13 +96,56 @@ const formatMappingDirection = (direction: string) => {
 };
 
 export default function MappingsListPage() {
+	// Get utils for cache management
+	const utils = api.useUtils();
+
 	const { data: mappingsData, refetch } = api.migration.mappings.useQuery({
 		limit: 250,
+	}, {
+		staleTime: 1 * 60 * 1000, // 1 minute - mappings change frequently
+		refetchOnWindowFocus: true,
+	});
+
+	const updateMapping = api.migration.updateMapping.useMutation({
+		onMutate: async () => {
+			toast.loading('Updating mapping...', { id: 'update-mapping' });
+		},
+		onError: (error) => {
+			toast.error(`Failed to update mapping: ${error.message}`, {
+				id: 'update-mapping',
+			});
+		},
+		onSuccess: () => {
+			toast.success('Mapping updated successfully', { id: 'update-mapping' });
+			utils.migration.mappings.invalidate();
+			setEditingMapping(null);
+			setEditingNotes('');
+		},
 	});
 
 	const deleteMapping = api.migration.deleteMapping.useMutation({
+		onMutate: async (variables) => {
+			// Optimistically remove from cache
+			await utils.migration.mappings.cancel();
+
+			const previousData = utils.migration.mappings.getData({ limit: 250 });
+
+			utils.migration.mappings.setData({ limit: 250 }, (old) => ({
+				...old,
+				mappings: old?.mappings?.filter(m => m.id !== variables.id) || [],
+			}));
+
+			return { previousData };
+		},
+		onError: (error, variables, context) => {
+			// Rollback on error
+			if (context?.previousData) {
+				utils.migration.mappings.setData({ limit: 250 }, context.previousData);
+			}
+		},
 		onSuccess: () => {
-			refetch();
+			// Invalidate to get fresh data
+			utils.migration.mappings.invalidate();
 		},
 	});
 
@@ -103,6 +158,8 @@ export default function MappingsListPage() {
 	const [regionFilter, setRegionFilter] = useState<string>("all");
 	const [dateFilter, setDateFilter] = useState<string>("all");
 	const [selectedMappings, setSelectedMappings] = useState<string[]>([]);
+	const [editingMapping, setEditingMapping] = useState<MigrationMapping | null>(null);
+	const [editingNotes, setEditingNotes] = useState<string>('');
 
 	// Delete mapping handler
 	const handleDeleteMapping = async (mappingId: number) => {
@@ -119,6 +176,32 @@ export default function MappingsListPage() {
 		} catch (error) {
 			console.error("Failed to delete mapping:", error);
 		}
+	};
+
+	// Handle editing notes
+	const handleEditNotes = (mapping: MigrationMapping) => {
+		setEditingMapping(mapping);
+		setEditingNotes(mapping.notes || '');
+	};
+
+	// Handle saving notes
+	const handleSaveNotes = async () => {
+		if (!editingMapping) return;
+
+		try {
+			await updateMapping.mutateAsync({
+				id: editingMapping.id,
+				notes: editingNotes,
+			});
+		} catch (error) {
+			console.error("Failed to update mapping notes:", error);
+		}
+	};
+
+	// Handle canceling edit
+	const handleCancelEdit = () => {
+		setEditingMapping(null);
+		setEditingNotes('');
 	};
 
 	// Apply filters
@@ -430,23 +513,40 @@ export default function MappingsListPage() {
 										</div>
 									</div>
 
-									{/* Delete Button */}
-									<div className="flex-shrink-0">
+									{/* Action Buttons */}
+									<div className="flex flex-shrink-0 items-center gap-2">
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => handleEditNotes(mapping)}
+											className="text-primary hover:bg-primary/10"
+											title="Edit notes"
+										>
+											<Edit className="h-4 w-4" />
+										</Button>
 										<Button
 											variant="ghost"
 											size="sm"
 											onClick={() => handleDeleteMapping(mapping.id)}
 											className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 											disabled={deleteMapping.isPending}
+											title="Delete mapping"
 										>
 											<Trash2 className="h-4 w-4" />
 										</Button>
 									</div>
 
-									{/* Notes (on hover) */}
+									{/* Notes Section */}
 									{mapping.notes && (
-										<div className="absolute top-full right-4 left-4 z-10 mt-1 hidden rounded border bg-popover p-2 text-xs shadow-md group-hover:block">
-											<strong>Notes:</strong> {mapping.notes}
+										<div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+											<div className="mb-1 flex items-center gap-2">
+												<span className="font-medium text-gray-900 text-sm">
+													Notes:
+												</span>
+											</div>
+											<div className="text-gray-700 text-sm">
+												{mapping.notes}
+											</div>
 										</div>
 									)}
 								</div>
@@ -468,6 +568,46 @@ export default function MappingsListPage() {
 					</div>
 				</CardContent>
 			</Card>
+
+			{/* Notes Editing Dialog */}
+			<Dialog open={!!editingMapping} onOpenChange={(open) => !open && handleCancelEdit()}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>Edit Mapping Notes</DialogTitle>
+						<DialogDescription>
+							Add or edit notes for this mapping between {editingMapping?.sourceResourceName || editingMapping?.sourceResourceId} and its targets.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<label className="font-medium text-sm">Notes</label>
+							<Textarea
+								value={editingNotes}
+								onChange={(e) => setEditingNotes(e.target.value)}
+								placeholder="Add any notes about this mapping..."
+								className="min-h-[100px] resize-none"
+								maxLength={1000}
+							/>
+							<div className="text-muted-foreground text-xs">
+								{editingNotes.length}/1000 characters
+							</div>
+						</div>
+					</div>
+					<div className="flex justify-end gap-3">
+						<Button variant="outline" onClick={handleCancelEdit}>
+							<X className="mr-2 h-4 w-4" />
+							Cancel
+						</Button>
+						<Button
+							onClick={handleSaveNotes}
+							disabled={updateMapping.isPending}
+						>
+							<Save className="mr-2 h-4 w-4" />
+							Save Notes
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

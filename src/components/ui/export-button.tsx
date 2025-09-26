@@ -20,7 +20,7 @@ export function ExportButton({
 		data: exportData,
 		refetch,
 		isFetching,
-	} = api.resources.exportAll.useQuery(undefined, {
+	} = api.resources.exportAll.useQuery(void 0, {
 		enabled: false, // Don't auto-fetch
 	});
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { httpBatchStreamLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
@@ -57,6 +58,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 						headers.set("x-trpc-source", "nextjs-react");
 						return headers;
 					},
+					// Enable request batching for better performance
+					maxURLLength: 2083,
 				}),
 			],
 		}),
@@ -66,6 +69,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 		<QueryClientProvider client={queryClient}>
 			<api.Provider client={trpcClient} queryClient={queryClient}>
 				{props.children}
+				{process.env.NODE_ENV === "development" && (
+					<ReactQueryDevtools initialIsOpen={false} />
+				)}
 			</api.Provider>
 		</QueryClientProvider>
 	);

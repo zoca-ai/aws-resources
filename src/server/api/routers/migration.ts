@@ -648,6 +648,77 @@ export const migrationRouter = createTRPCRouter({
 		};
 	}),
 
+	// Update mapping notes and other fields
+	updateMapping: publicProcedure
+		.input(
+			z.object({
+				id: z.number().positive(),
+				notes: z.string().optional(),
+				priority: z.enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]]).optional(),
+				category: z.enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]]).optional(),
+				migrationStatus: z.enum(MIGRATION_STATUS_VALUES as [string, ...string[]]).optional(),
+			})
+		)
+		.mutation(async ({ input }) => {
+			const { id, notes, priority, category, migrationStatus } = input;
+
+			// Check if mapping exists
+			const existingMapping = await db
+				.select()
+				.from(migrationMappings)
+				.where(eq(migrationMappings.id, id))
+				.limit(1);
+
+			if (existingMapping.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Mapping not found",
+				});
+			}
+
+			const mapping = existingMapping[0]!;
+
+			// Update the mapping
+			const updateData: Partial<typeof migrationMappings.$inferInsert> = {
+				updatedAt: new Date(),
+			};
+
+			if (notes !== undefined) {
+				updateData.notes = notes;
+			}
+			if (priority !== undefined) {
+				updateData.priority = priority;
+			}
+			if (category !== undefined) {
+				updateData.category = category;
+			}
+			if (migrationStatus !== undefined) {
+				updateData.migrationStatus = migrationStatus;
+			}
+
+			// Update history
+			const currentHistory = mapping.history
+				? JSON.parse(mapping.history as string)
+				: [];
+			currentHistory.push({
+				action: "updated",
+				timestamp: new Date(),
+				user: "system",
+				details: `Updated mapping${notes !== undefined ? " with notes" : ""}${priority !== undefined ? ` priority to ${priority}` : ""}${category !== undefined ? ` category to ${category}` : ""}${migrationStatus !== undefined ? ` status to ${migrationStatus}` : ""}`,
+			});
+			updateData.history = JSON.stringify(currentHistory);
+
+			await db
+				.update(migrationMappings)
+				.set(updateData)
+				.where(eq(migrationMappings.id, id));
+
+			return {
+				message: "Mapping updated successfully",
+				id,
+			};
+		}),
+
 	// Validate migration mapping
 	validate: publicProcedure
 		.input(z.object({ mappingId: z.number() }))
