@@ -127,6 +127,11 @@ export interface UseMapping {
 		mappingType?: string,
 		notes?: string,
 	) => Promise<void>;
+	handleBulkMapToNothing: (
+		resourceIds: string[],
+		mappingType?: string,
+		notes?: string,
+	) => Promise<any>;
 	handleMapFromNothing: (
 		resourceIds: string[],
 		notes?: string,
@@ -814,11 +819,38 @@ export function useMapping(): UseMapping {
 		[createMapping, refetchAll],
 	);
 
+	const handleBulkMapToNothing = useCallback(
+		async (resourceIds: string[], mappingType = "deprecation", notes?: string) => {
+			try {
+				const result = await createBulkManyToManyMapping.mutateAsync({
+					sourceResourceIds: resourceIds,
+					targetResourceIds: [], // Empty array for "Map to Nothing"
+					mappingDirection: "old_to_new",
+					mappingType: mappingType as any,
+					notes: notes || `${resourceIds.length} resources marked for ${mappingType}`,
+					priority: "medium",
+					category: mappingType === "removal" ? "to_be_removed" : "deprecated",
+				});
+
+				toast.success(`${resourceIds.length} resources marked for ${mappingType}`);
+				refetchAll();
+				return result;
+			} catch (error) {
+				console.error("Failed to bulk map resources to nothing:", error);
+				toast.error(`Failed to mark resources for ${mappingType}`);
+				throw error;
+			}
+		},
+		[createBulkManyToManyMapping, refetchAll],
+	);
+
 	const handleMapFromNothing = useCallback(
 		async (resourceIds: string[], notes?: string) => {
 			try {
-				await createNewResourceMapping.mutateAsync({
+				const result = await createBulkManyToManyMapping.mutateAsync({
+					sourceResourceIds: [], // Empty array for "Map from Nothing"
 					targetResourceIds: resourceIds,
+					mappingDirection: "old_to_new",
 					mappingType: "addition",
 					notes: notes || `${resourceIds.length} resources marked as newly added`,
 					priority: "medium",
@@ -827,12 +859,14 @@ export function useMapping(): UseMapping {
 
 				toast.success(`${resourceIds.length} resources marked as newly added`);
 				refetchAll();
+				return result;
 			} catch (error) {
 				console.error("Failed to map resources from nothing:", error);
 				toast.error("Failed to mark resources as newly added");
+				throw error;
 			}
 		},
-		[createNewResourceMapping, refetchAll],
+		[createBulkManyToManyMapping, refetchAll],
 	);
 
 	// Global state setters
@@ -912,6 +946,7 @@ export function useMapping(): UseMapping {
 		handleBulkManyToManyResourceMap,
 		handleResourceUnmap,
 		handleMapToNothing,
+		handleBulkMapToNothing,
 		handleMapFromNothing,
 		handleBulkMap,
 		acceptPendingMapping,

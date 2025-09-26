@@ -1087,7 +1087,9 @@ export const migrationRouter = createTRPCRouter({
       })
       .from(migrationMappingSources);
 
-    const mappedIds = mappedResourceIds.map((r) => r.resourceId).filter(id => id !== "NEW_RESOURCE"); // Exclude special placeholder
+    const mappedIds = mappedResourceIds
+      .map((r) => r.resourceId)
+      .filter((id) => id !== "NEW_RESOURCE"); // Exclude special placeholder
 
     // Find resources not in mapping
     const unmappedResourcesQuery =

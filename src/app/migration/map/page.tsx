@@ -390,63 +390,13 @@ export default function MappingPage() {
         onCreateMapping={handleCreateMapping}
         onClearSelection={handleClearSelection}
         onMapToNothing={(resourceIds, mappingType, notes) => {
-          resourceIds.forEach((resourceId) => {
-            mapping.handleMapToNothing(resourceId, mappingType, notes);
-          });
+          mapping.handleBulkMapToNothing(resourceIds, mappingType, notes);
         }}
         onMapFromNothing={(resourceIds, notes) => {
           mapping.handleMapFromNothing(resourceIds, notes);
         }}
         loading={mapping.loading.mappings}
       />
-
-      {/* Null Mapping Actions */}
-      {selectedOldResources.length > 0 && selectedNewResources.length === 0 && (
-        <div className="fixed bottom-60 left-1/2 transform -translate-x-1/2 z-40">
-          <div className="bg-background border rounded-lg shadow-lg p-4 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {selectedOldResources.length} old resource
-              {selectedOldResources.length > 1 ? "s" : ""} selected
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  selectedOldResources.forEach((resourceId) => {
-                    mapping.handleMapToNothing(
-                      resourceId,
-                      "deprecation",
-                      "Resource marked as deprecated",
-                    );
-                  });
-                  setSelectedOldResources([]);
-                }}
-                className="px-3 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-md text-sm flex items-center gap-2"
-                disabled={mapping.loading.mappings}
-              >
-                <span>⚠️</span>
-                Mark as Deprecated
-              </button>
-              <button
-                onClick={() => {
-                  selectedOldResources.forEach((resourceId) => {
-                    mapping.handleMapToNothing(
-                      resourceId,
-                      "removal",
-                      "Resource marked for removal",
-                    );
-                  });
-                  setSelectedOldResources([]);
-                }}
-                className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-md text-sm flex items-center gap-2"
-                disabled={mapping.loading.mappings}
-              >
-                <span>🗑️</span>
-                Mark for Removal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
