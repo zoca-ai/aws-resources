@@ -1,2 +1,0 @@
-source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
-arn:aws:rds:us-east-1:418295703256:cluster:prod-database-snapshot-2025-08-02-cluster,prod-database-snapshot-2025-08-02-cluster,"","",pending,AI mapping required - review patterns

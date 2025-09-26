@@ -1,3 +1,0 @@
-source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
-arn:aws:elasticache:us-east-1:418295703256:cluster:redis-provisioned-prod-001,redis-provisioned-prod-001,"","",pending,AI mapping required - review patterns
-arn:aws:elasticache:us-east-1:418295703256:cluster:redis-provisioned-prod-002,redis-provisioned-prod-002,"","",pending,AI mapping required - review patterns

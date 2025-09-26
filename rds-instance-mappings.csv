@@ -1,7 +1,0 @@
-source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
-arn:aws:rds:us-east-1:418295703256:db:grafana,grafana,"","",pending,AI mapping required - review patterns
-arn:aws:rds:us-east-1:418295703256:db:metabase-db,metabase-db,"","",pending,AI mapping required - review patterns
-arn:aws:rds:us-east-1:418295703256:db:prod,prod,"","",pending,AI mapping required - review patterns
-arn:aws:rds:us-east-1:418295703256:db:prod-database-snapshot-2025-08-02,prod-database-snapshot-2025-08-02,"","",pending,AI mapping required - review patterns
-arn:aws:rds:us-east-1:418295703256:db:prodsep10,prodsep10,"","",pending,AI mapping required - review patterns
-arn:aws:rds:us-east-1:418295703256:db:readreplica-prod,readreplica-prod,"","",pending,AI mapping required - review patterns

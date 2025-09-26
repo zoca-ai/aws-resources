@@ -1,7 +1,0 @@
-source_resource_id,source_resource_name,target_resource_id,target_resource_name,mapping_status,notes
-i-011162f6e9b3dd36a,Chrone-prod-node-env,"","",pending,AI mapping required - review patterns
-i-07854b338ef96d591,OpenVPN Server,"","",pending,AI mapping required - review patterns
-i-0ff9efe1f2bb7dfe0,updated-zoca-chrone-app-env,"","",pending,AI mapping required - review patterns
-i-08788c100f3fa6598,updated-zoca-chrone-app-env,"","",pending,AI mapping required - review patterns
-i-02137085b8654f916,zoca-chrone-application-env,"","",pending,AI mapping required - review patterns
-i-0556c80b518d6a323,zoca-chrone-application-env,"","",pending,AI mapping required - review patterns
