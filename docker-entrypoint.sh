@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Load production environment variables
+if [ -f "/app/.env.production" ]; then
+    echo "📝 Loading production environment variables..."
+    export $(grep -v '^#' /app/.env.production | xargs)
+fi
+
 echo "🔄 Running database migrations..."
 
 # Run database migrations

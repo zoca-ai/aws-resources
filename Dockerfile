@@ -62,6 +62,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Copy production environment file
+COPY .env.production /app/.env.production
+
 USER nextjs
 
 EXPOSE 3000
@@ -69,16 +72,7 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Production environment variables
-ENV NODE_ENV="production"
-ENV DATABASE_URL=""
-ENV AUTH_SECRET=""
-ENV AUTH_GOOGLE_ID=""
-ENV AUTH_GOOGLE_SECRET=""
-ENV AWS_PROFILE="default"
-ENV COLLECTION_TIMEOUT="300000"
-ENV COLLECTION_RETRY_ATTEMPTS="3"
-ENV COLLECTION_RETRY_DELAY="1000"
+# Environment variables will be loaded from .env.production at runtime
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
