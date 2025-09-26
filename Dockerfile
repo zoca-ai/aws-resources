@@ -25,6 +25,9 @@ ENV AWS_PROFILE="default"
 ENV COLLECTION_TIMEOUT="300000"
 ENV COLLECTION_RETRY_ATTEMPTS="3"
 ENV COLLECTION_RETRY_DELAY="1000"
+
+# Build Next.js application
+RUN pnpm run build
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
