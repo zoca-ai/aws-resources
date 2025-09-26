@@ -91,13 +91,61 @@ export default function CollectPage() {
 	const resourceCountMap = useMemo(() => {
 		const map: Record<string, number> = {};
 		if (resourceCounts && collectorTypes) {
+			// Create mapping from actual API resource types to collector IDs
+			const resourceTypeMapping: Record<string, string> = {
+				// EC2 resources
+				'ec2-instance': 'ec2',
+				'ec2-vpc': 'ec2',
+				'ec2-subnet': 'ec2',
+				'security-group': 'ec2',
+				'ebs-volume': 'ec2',
+				'ec2-volume': 'ec2',
+				'ec2-security-group': 'ec2',
+
+				// Lambda
+				'lambda-function': 'lambda',
+
+				// ECR
+				'ecr-repository': 'ecr',
+
+				// ECS
+				'ecs-cluster': 'ecs',
+				'ecs-service': 'ecs',
+
+				// RDS
+				'rds-instance': 'rds',
+				'rds-cluster': 'rds',
+				'rds-subnet-group': 'rds',
+
+				// DynamoDB
+				'dynamodb-table': 'dynamodb',
+
+				// ElastiCache
+				'elasticache-cluster': 'elasticache',
+
+				// Load Balancer
+				'load-balancer': 'loadbalancer',
+				'application-load-balancer': 'loadbalancer',
+				'network-load-balancer': 'loadbalancer',
+				'gateway-load-balancer': 'loadbalancer',
+
+				// Route53
+				'route53-hosted-zone': 'route53',
+				'hosted-zone': 'route53',
+
+				// S3
+				's3-bucket': 's3',
+
+				// Step Functions
+				'step-function': 'stepfunctions',
+				'state-machine': 'stepfunctions',
+			};
+
+			// Map resource counts to collectors using the mapping
 			resourceCounts.forEach((item) => {
-				// Find the collector that handles this resource type
-				const collector = collectorTypes.find((c) =>
-					c.resources.includes(item.type),
-				);
-				if (collector) {
-					map[collector.id] = (map[collector.id] || 0) + item.count;
+				const collectorId = resourceTypeMapping[item.type.toLowerCase()];
+				if (collectorId) {
+					map[collectorId] = (map[collectorId] || 0) + item.count;
 				}
 			});
 		}
