@@ -1,4 +1,4 @@
-import { auth } from "@/server/auth";
+import { auth } from "@/server/auth/index";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -16,17 +16,22 @@ const protectedApiRoutes = ["/api/trpc"];
 export default async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
+	console.log(`[Middleware] Processing request to: ${pathname}`);
+
 	// Allow public routes
 	if (publicRoutes.some((route) => pathname.startsWith(route))) {
+		console.log(`[Middleware] Public route detected, allowing: ${pathname}`);
 		return NextResponse.next();
 	}
 
 	// Get session
 	const session = await auth();
+	console.log(`[Middleware] Session status: ${session ? 'authenticated' : 'not authenticated'}`);
 
 	// Protect API routes
 	if (protectedApiRoutes.some((route) => pathname.startsWith(route))) {
 		if (!session) {
+			console.log(`[Middleware] Unauthorized API access to: ${pathname}`);
 			return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
 				status: 401,
 				headers: { "content-type": "application/json" },
@@ -35,13 +40,15 @@ export default async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	// Redirect unauthenticated users to signin for all other routes
+	// Redirect unauthenticated users to signup for all other routes
 	if (!session) {
-		const signInUrl = new URL("/auth/signin", request.url);
-		signInUrl.searchParams.set("callbackUrl", pathname);
-		return NextResponse.redirect(signInUrl);
+		const signUpUrl = new URL("/auth/signup", request.url);
+		signUpUrl.searchParams.set("callbackUrl", pathname);
+		console.log(`[Middleware] Redirecting unauthenticated user from ${pathname} to ${signUpUrl.toString()}`);
+		return NextResponse.redirect(signUpUrl);
 	}
 
+	console.log(`[Middleware] Authenticated user accessing: ${pathname}`);
 	return NextResponse.next();
 }
 

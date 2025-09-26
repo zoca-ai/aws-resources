@@ -16,15 +16,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build with optimizations and cache
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-ENV AUTH_SECRET="docker-build-secret"
-ENV AUTH_GOOGLE_ID="placeholder"
-ENV AUTH_GOOGLE_SECRET="placeholder"
-ENV DATABASE_URL="file:./db.sqlite"
-RUN --mount=type=cache,id=nextjs,target=/app/.next/cache pnpm build
-
+ENV NODE_ENV="production"
+ENV DATABASE_URL=""
+ENV AUTH_SECRET=""
+ENV AUTH_GOOGLE_ID=""
+ENV AUTH_GOOGLE_SECRET=""
+ENV AWS_PROFILE="default"
+ENV COLLECTION_TIMEOUT="300000"
+ENV COLLECTION_RETRY_ATTEMPTS="3"
+ENV COLLECTION_RETRY_DELAY="1000"
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -68,6 +68,17 @@ EXPOSE 3000
 
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
+
+# Production environment variables
+ENV NODE_ENV="production"
+ENV DATABASE_URL=""
+ENV AUTH_SECRET=""
+ENV AUTH_GOOGLE_ID=""
+ENV AUTH_GOOGLE_SECRET=""
+ENV AWS_PROFILE="default"
+ENV COLLECTION_TIMEOUT="300000"
+ENV COLLECTION_RETRY_ATTEMPTS="3"
+ENV COLLECTION_RETRY_DELAY="1000"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
