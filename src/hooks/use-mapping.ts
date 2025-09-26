@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 // Mapping-specific types
-export type MappingStatus = "mapped" | "unmapped" | "pending";
+export type MappingStatus = "mapped" | "unmapped" | "pending" | "deprecated" | "removal" | "newly_added";
 export type SortField = "name" | "type" | "region" | "mappedTo";
 export type SortOrder = "asc" | "desc";
 
@@ -42,6 +42,9 @@ export interface MappingStats {
 	mapped: number;
 	unmapped: number;
 	pending: number;
+	deprecated: number;
+	removal: number;
+	newly_added: number;
 	confidence: {
 		high: number;
 		medium: number;
@@ -114,6 +117,15 @@ export interface UseMapping {
 		options?: any,
 	) => Promise<any>;
 	handleResourceUnmap: (resourceId: string) => Promise<void>;
+	handleMapToNothing: (
+		resourceId: string,
+		mappingType?: string,
+		notes?: string,
+	) => Promise<void>;
+	handleMapFromNothing: (
+		resourceIds: string[],
+		notes?: string,
+	) => Promise<void>;
 	handleBulkMap: (mappingList: any[]) => Promise<void>;
 	acceptPendingMapping: (mapping: any) => Promise<void>;
 	rejectPendingMapping: (mapping: any) => Promise<void>;
@@ -263,6 +275,21 @@ export function useMapping(): UseMapping {
 		},
 	});
 
+	const createNewResourceMapping = api.migration.createNewResourceMapping.useMutation({
+		onMutate: async (variables) => {
+			toast.loading('Marking resources as newly added...', { id: 'create-new-mapping' });
+		},
+		onError: (error) => {
+			toast.error(`Failed to mark resources as new: ${error.message}`, {
+				id: 'create-new-mapping',
+			});
+		},
+		onSuccess: () => {
+			toast.success('Resources marked as newly added', { id: 'create-new-mapping' });
+			utils.migration.mappingsInfinite.invalidate();
+		},
+	});
+
 	// Extract and flatten resources from infinite query pages
 	const oldResources = useMemo(() => {
 		return oldResourcesData?.pages.flatMap(page => page.resources) || [];
@@ -299,14 +326,40 @@ export function useMapping(): UseMapping {
 				globalState.pendingMappings.map((m) => m.oldResourceId),
 			);
 
+			// Track special mapping types
+			const deprecatedResourceIds = new Set(
+				mappings
+					.filter((m) => (m as any).mappingType === "deprecation")
+					.map((m) => m.sourceResourceId),
+			);
+			const removalResourceIds = new Set(
+				mappings
+					.filter((m) => (m as any).mappingType === "removal")
+					.map((m) => m.sourceResourceId),
+			);
+			const newlyAddedResourceIds = new Set(
+				mappings
+					.filter((m) => m.sourceResourceId === "NEW_RESOURCE")
+					.flatMap(
+						(m) =>
+							(m as any).targetResources?.map((t: any) => t.resourceId) || [],
+					),
+			);
+
 			return resourceList.map(
 				(resource): MappingResource => ({
 					...resource,
 					mappingStatus: pendingResourceIds.has(resource.resourceId)
 						? "pending"
-						: allMappedResourceIds.has(resource.resourceId)
-							? "mapped"
-							: "unmapped",
+						: deprecatedResourceIds.has(resource.resourceId)
+							? "deprecated"
+							: removalResourceIds.has(resource.resourceId)
+								? "removal"
+								: newlyAddedResourceIds.has(resource.resourceId)
+									? "newly_added"
+									: allMappedResourceIds.has(resource.resourceId)
+										? "mapped"
+										: "unmapped",
 					mappedToResourceId: mappings
 						.find((m) => m.sourceResourceId === resource.resourceId)
 						?.id?.toString(),
@@ -387,7 +440,7 @@ export function useMapping(): UseMapping {
 	);
 
 	const uniqueStatuses: MappingStatus[] = useMemo(
-		() => ["mapped", "unmapped", "pending"],
+		() => ["mapped", "unmapped", "pending", "deprecated", "removal", "newly_added"],
 		[],
 	);
 
@@ -403,6 +456,15 @@ export function useMapping(): UseMapping {
 		).length;
 		const pending = allResources.filter(
 			(r) => r.mappingStatus === "pending",
+		).length;
+		const deprecated = allResources.filter(
+			(r) => r.mappingStatus === "deprecated",
+		).length;
+		const removal = allResources.filter(
+			(r) => r.mappingStatus === "removal",
+		).length;
+		const newly_added = allResources.filter(
+			(r) => r.mappingStatus === "newly_added",
 		).length;
 
 		const confidenceCounts = allResources.reduce(
@@ -423,6 +485,9 @@ export function useMapping(): UseMapping {
 			mapped,
 			unmapped,
 			pending,
+			deprecated,
+			removal,
+			newly_added,
 			confidence: confidenceCounts,
 		};
 	}, [allResources]);
@@ -669,6 +734,50 @@ export function useMapping(): UseMapping {
 		}
 	}, []);
 
+	const handleMapToNothing = useCallback(
+		async (resourceId: string, mappingType = "deprecation", notes?: string) => {
+			try {
+				await createMapping.mutateAsync({
+					sourceResourceId: resourceId,
+					targetResourceIds: [], // Empty array for "Map to Nothing"
+					mappingDirection: "old_to_new",
+					mappingType: mappingType as any,
+					notes: notes || `Resource marked for ${mappingType}`,
+					priority: "medium",
+					category: mappingType === "removal" ? "to_be_removed" : "deprecated",
+				});
+
+				toast.success(`Resource marked for ${mappingType}`);
+				refetchAll();
+			} catch (error) {
+				console.error("Failed to map resource to nothing:", error);
+				toast.error(`Failed to mark resource for ${mappingType}`);
+			}
+		},
+		[createMapping, refetchAll],
+	);
+
+	const handleMapFromNothing = useCallback(
+		async (resourceIds: string[], notes?: string) => {
+			try {
+				await createNewResourceMapping.mutateAsync({
+					targetResourceIds: resourceIds,
+					mappingType: "addition",
+					notes: notes || `${resourceIds.length} resources marked as newly added`,
+					priority: "medium",
+					category: "undecided",
+				});
+
+				toast.success(`${resourceIds.length} resources marked as newly added`);
+				refetchAll();
+			} catch (error) {
+				console.error("Failed to map resources from nothing:", error);
+				toast.error("Failed to mark resources as newly added");
+			}
+		},
+		[createNewResourceMapping, refetchAll],
+	);
+
 	// Global state setters
 	const setSortBy = useCallback((field: SortField) => {
 		setGlobalState((prev) => ({ ...prev, sortBy: field }));
@@ -744,6 +853,8 @@ export function useMapping(): UseMapping {
 		handleUpdateMappingNotes,
 		handleManyToManyResourceMap,
 		handleResourceUnmap,
+		handleMapToNothing,
+		handleMapFromNothing,
 		handleBulkMap,
 		acceptPendingMapping,
 		rejectPendingMapping,

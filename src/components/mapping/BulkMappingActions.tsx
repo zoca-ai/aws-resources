@@ -26,9 +26,11 @@ import {
 	GitBranch,
 	Link,
 	Merge,
+	Plus,
 	Save,
 	Shuffle,
 	Split,
+	Trash2,
 	X,
 } from "lucide-react";
 import type React from "react";
@@ -46,6 +48,8 @@ interface BulkMappingActionsProps {
 		notes?: string;
 	}) => void;
 	onClearSelection: () => void;
+	onMapToNothing?: (resourceIds: string[], mappingType: string, notes?: string) => void;
+	onMapFromNothing?: (resourceIds: string[], notes?: string) => void;
 	loading?: boolean;
 }
 
@@ -73,6 +77,24 @@ const MAPPING_TYPES = [
 		label: "Dependency",
 		icon: GitBranch,
 		description: "Related/dependent resources",
+	},
+	{
+		value: "deprecation",
+		label: "Deprecation",
+		icon: AlertTriangle,
+		description: "Resource is deprecated but kept for now",
+	},
+	{
+		value: "removal",
+		label: "Removal",
+		icon: Trash2,
+		description: "Resource will be removed/deleted",
+	},
+	{
+		value: "addition",
+		label: "Addition",
+		icon: Plus,
+		description: "Newly added resource with no legacy equivalent",
 	},
 ];
 
@@ -115,6 +137,8 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 	newResources,
 	onCreateMapping,
 	onClearSelection,
+	onMapToNothing,
+	onMapFromNothing,
 	loading = false,
 }) => {
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -122,7 +146,8 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 	const [mappingType, setMappingType] = useState("replacement");
 	const [mappingDirection, setMappingDirection] = useState("old_to_new");
 
-	if (selectedOldResources.length === 0 || selectedNewResources.length === 0) {
+	// Show component when either old resources or new resources are selected
+	if (selectedOldResources.length === 0 && selectedNewResources.length === 0) {
 		return null;
 	}
 

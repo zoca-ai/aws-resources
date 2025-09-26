@@ -245,7 +245,7 @@ export const migrationRouter = createTRPCRouter({
 		.input(
 			z.object({
 				sourceResourceId: z.string(),
-				targetResourceIds: z.array(z.string()).min(1),
+				targetResourceIds: z.array(z.string()).default([]),
 				mappingDirection: z
 					.enum(MAPPING_DIRECTION_VALUES as [string, ...string[]])
 					.default("old_to_new"),
@@ -285,14 +285,17 @@ export const migrationRouter = createTRPCRouter({
 
 			const sourceResource = sourceResourceResult[0]!;
 
-			// Get target resource details
-			const targetResources = await db
-				.select()
-				.from(resources)
-				.where(inArray(resources.resourceId, targetResourceIds));
+			// Get target resource details (skip if no targets for "Map to Nothing")
+			let targetResources: any[] = [];
+			if (targetResourceIds.length > 0) {
+				targetResources = await db
+					.select()
+					.from(resources)
+					.where(inArray(resources.resourceId, targetResourceIds));
 
-			if (targetResources.length !== targetResourceIds.length) {
-				throw new Error("One or more target resources not found");
+				if (targetResources.length !== targetResourceIds.length) {
+					throw new Error("One or more target resources not found");
+				}
 			}
 
 			// Generate mapping group ID
@@ -319,7 +322,9 @@ export const migrationRouter = createTRPCRouter({
 							action: "created",
 							timestamp: new Date(),
 							user: "system",
-							details: `Created many-to-many mapping: 1 source -> ${targetResourceIds.length} targets`,
+							details: targetResourceIds.length === 0
+								? `Mapped resource to nothing (${mappingType})`
+								: `Created many-to-many mapping: 1 source -> ${targetResourceIds.length} targets`,
 						},
 					]),
 				})
@@ -331,6 +336,106 @@ export const migrationRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create mapping",
+				});
+			}
+
+			// Create target mappings (only if there are targets)
+			if (targetResources.length > 0) {
+				const targetMappingsData = targetResources.map((resource) => ({
+					mappingId,
+					resourceId: resource.resourceId,
+					resourceType: resource.resourceType,
+					resourceName: resource.resourceName,
+					resourceArn: resource.resourceArn,
+					region: resource.region,
+					awsAccountId: resource.awsAccountId,
+					category: resource.migrationCategory || "uncategorized",
+					mappingType,
+					notes,
+				}));
+
+				await db.insert(migrationMappingTargets).values(targetMappingsData);
+			}
+
+			return {
+				message: "Mapping created successfully",
+				mappingId,
+				mappingGroupId,
+			};
+		}),
+
+	// Create a mapping for newly added resources (Map from Nothing)
+	createNewResourceMapping: publicProcedure
+		.input(
+			z.object({
+				targetResourceIds: z.array(z.string()).min(1),
+				mappingType: z
+					.enum(MAPPING_TYPE_VALUES as [string, ...string[]])
+					.default("addition"),
+				notes: z.string().optional(),
+				priority: z
+					.enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]])
+					.default("medium"),
+				category: z
+					.enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
+					.default("undecided"),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const {
+				targetResourceIds,
+				mappingType,
+				notes,
+				priority,
+				category,
+			} = input;
+
+			// Get target resource details
+			const targetResources = await db
+				.select()
+				.from(resources)
+				.where(inArray(resources.resourceId, targetResourceIds));
+
+			if (targetResources.length !== targetResourceIds.length) {
+				throw new Error("One or more target resources not found");
+			}
+
+			// Generate mapping group ID
+			const mappingGroupId = `new-mapping-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+			// Create migration mapping with null source (newly added)
+			const mappingResult = await db
+				.insert(migrationMappings)
+				.values({
+					mappingGroupId,
+					sourceResourceId: "NEW_RESOURCE", // Special identifier for newly added
+					sourceResourceType: "NEW",
+					sourceResourceName: "Newly Added Resource",
+					sourceResourceArn: null,
+					sourceRegion: targetResources[0]?.region || "unknown",
+					sourceAwsAccountId: targetResources[0]?.awsAccountId || "unknown",
+					sourceCategory: "new",
+					mappingDirection: "new_to_new",
+					priority,
+					category,
+					notes,
+					history: JSON.stringify([
+						{
+							action: "created",
+							timestamp: new Date(),
+							user: "system",
+							details: `Marked ${targetResourceIds.length} resources as newly added`,
+						},
+					]),
+				})
+				.returning({ id: migrationMappings.id });
+
+			const mappingId = mappingResult[0]?.id;
+
+			if (!mappingId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create new resource mapping",
 				});
 			}
 
@@ -351,7 +456,7 @@ export const migrationRouter = createTRPCRouter({
 			await db.insert(migrationMappingTargets).values(targetMappingsData);
 
 			return {
-				message: "Mapping created successfully",
+				message: "New resource mapping created successfully",
 				mappingId,
 				mappingGroupId,
 			};

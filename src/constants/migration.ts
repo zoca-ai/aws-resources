@@ -68,6 +68,9 @@ export const MAPPING_TYPES = {
 	CONSOLIDATION: "consolidation",
 	SPLIT: "split",
 	DEPENDENCY: "dependency",
+	DEPRECATION: "deprecation",
+	REMOVAL: "removal",
+	ADDITION: "addition",
 } as const;
 
 export const MAPPING_TYPE_VALUES = Object.values(MAPPING_TYPES);
