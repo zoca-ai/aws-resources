@@ -245,11 +245,9 @@ export default function MappingPage() {
         }
       }
 
-      // Clear selections
-      setSelectedOldResources([]);
-      setSelectedNewResources([]);
     } catch (error) {
       console.error("Failed to create mappings:", error);
+      throw error; // Re-throw so BulkMappingActions knows the operation failed
     }
   };
 
@@ -389,11 +387,11 @@ export default function MappingPage() {
         newResources={filteredNewResources}
         onCreateMapping={handleCreateMapping}
         onClearSelection={handleClearSelection}
-        onMapToNothing={(resourceIds, mappingType, notes) => {
-          mapping.handleBulkMapToNothing(resourceIds, mappingType, notes);
+        onMapToNothing={async (resourceIds, mappingType, notes) => {
+          await mapping.handleBulkMapToNothing(resourceIds, mappingType, notes);
         }}
-        onMapFromNothing={(resourceIds, notes) => {
-          mapping.handleMapFromNothing(resourceIds, notes);
+        onMapFromNothing={async (resourceIds, notes) => {
+          await mapping.handleMapFromNothing(resourceIds, notes);
         }}
         loading={mapping.loading.mappings}
       />

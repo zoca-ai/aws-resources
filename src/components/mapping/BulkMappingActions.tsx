@@ -46,14 +46,14 @@ interface BulkMappingActionsProps {
     mappingDirection?: string;
     mappingType?: string;
     notes?: string;
-  }) => void;
+  }) => Promise<void>;
   onClearSelection: () => void;
   onMapToNothing?: (
     resourceIds: string[],
     mappingType: string,
     notes?: string,
-  ) => void;
-  onMapFromNothing?: (resourceIds: string[], notes?: string) => void;
+  ) => Promise<void>;
+  onMapFromNothing?: (resourceIds: string[], notes?: string) => Promise<any>;
   loading?: boolean;
 }
 
@@ -185,32 +185,40 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
       newResourceTypes.size === 1 &&
       [...oldResourceTypes][0] !== [...newResourceTypes][0]);
 
-  const handleConfirm = () => {
-    if (isNullMapping) {
-      if (selectedOldResources.length === 0 && onMapFromNothing) {
-        // Newly added resources (no old resources selected)
-        onMapFromNothing(selectedNewResources, notes.trim() || undefined);
-      } else if (selectedNewResources.length === 0 && onMapToNothing) {
-        // Resources to be migrated/deprecated/removed (no new resources selected)
-        onMapToNothing(
-          selectedOldResources,
+  const handleConfirm = async () => {
+    try {
+      if (isNullMapping) {
+        if (selectedOldResources.length === 0 && onMapFromNothing) {
+          // Newly added resources (no old resources selected)
+          await onMapFromNothing(selectedNewResources, notes.trim() || undefined);
+        } else if (selectedNewResources.length === 0 && onMapToNothing) {
+          // Resources to be migrated/deprecated/removed (no new resources selected)
+          await onMapToNothing(
+            selectedOldResources,
+            mappingType,
+            notes.trim() || undefined,
+          );
+        }
+      } else {
+        // Regular many-to-many mapping
+        await onCreateMapping({
+          mappingDirection,
           mappingType,
-          notes.trim() || undefined,
-        );
+          notes: notes.trim() || undefined,
+        });
       }
-    } else {
-      // Regular many-to-many mapping
-      onCreateMapping({
-        mappingDirection,
-        mappingType,
-        notes: notes.trim() || undefined,
-      });
-    }
 
-    setShowConfirmDialog(false);
-    setNotes("");
-    setMappingType("replacement");
-    setMappingDirection("old_to_new");
+      // Clear selections after successful operation
+      onClearSelection();
+
+      setShowConfirmDialog(false);
+      setNotes("");
+      setMappingType("replacement");
+      setMappingDirection("old_to_new");
+    } catch (error) {
+      console.error("Failed to create mapping:", error);
+      // Don't close dialog or clear selections on error
+    }
   };
 
   const handleCancel = () => {

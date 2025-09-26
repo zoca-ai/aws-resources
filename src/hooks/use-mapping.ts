@@ -135,7 +135,7 @@ export interface UseMapping {
 	handleMapFromNothing: (
 		resourceIds: string[],
 		notes?: string,
-	) => Promise<void>;
+	) => Promise<any>;
 	handleBulkMap: (mappingList: any[]) => Promise<void>;
 	acceptPendingMapping: (mapping: any) => Promise<void>;
 	rejectPendingMapping: (mapping: any) => Promise<void>;

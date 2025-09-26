@@ -42,7 +42,7 @@ export function MappingCard({
 
   return (
     <div
-      className={`grid grid-cols-[300px_120px_1fr_100px] gap-4 rounded-lg border p-4 transition-colors hover:bg-accent/50 mb-4 items-start ${typeConfig.color}`}
+      className={`grid grid-cols-[1fr_150px_1fr_120px] gap-6 rounded-lg border p-6 transition-colors hover:bg-accent/50 mb-4 items-start ${typeConfig.color}`}
     >
       {/* Source Resources - Column 1 */}
       <div className="min-w-0">
@@ -54,7 +54,7 @@ export function MappingCard({
                 .map((source: any, idx: number) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-2 min-w-0 py-1"
+                    className="flex items-start gap-3 min-w-0 py-2"
                   >
                     <AwsIcon
                       resourceType={source.resourceType || "unknown"}
@@ -85,7 +85,7 @@ export function MappingCard({
                   </div>
                 ))}
               {mapping.sourceResources.length > 2 && (
-                <div className="text-muted-foreground text-xs pl-6 py-1">
+                <div className="text-muted-foreground text-xs pl-8 py-1">
                   +{mapping.sourceResources.length - 2} more sources
                 </div>
               )}
@@ -100,16 +100,16 @@ export function MappingCard({
       </div>
 
       {/* Mapping Direction - Column 2 */}
-      <div className="flex flex-col items-center justify-start gap-2 py-2">
-        <TypeIcon className="h-5 w-5 text-muted-foreground" />
-        <Badge variant="outline" className={`text-xs text-center ${typeConfig.badge}`}>
+      <div className="flex flex-col items-center justify-center gap-3 py-4 min-h-[120px]">
+        <TypeIcon className="h-6 w-6 text-muted-foreground" />
+        <Badge variant="outline" className={`text-xs text-center px-2 py-1 ${typeConfig.badge}`}>
           {typeConfig.label}
         </Badge>
-        <Badge variant="outline" className="text-xs text-center">
+        <Badge variant="outline" className="text-xs text-center px-2 py-1">
           {formatMappingDirection(mapping.mappingDirection || "old_to_new")}
         </Badge>
-        <div className="mt-1 text-center">
-          <Badge variant="secondary" className="text-xs">
+        <div className="text-center">
+          <Badge variant="secondary" className="text-xs px-2 py-1">
             {mapping.migrationStatus?.replace("_", " ") || "not started"}
           </Badge>
         </div>
@@ -125,7 +125,7 @@ export function MappingCard({
                 .map((target: any, idx: number) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-2 min-w-0 py-1"
+                    className="flex items-start gap-3 min-w-0 py-2"
                   >
                     <AwsIcon
                       resourceType={target.resourceType}
@@ -156,7 +156,7 @@ export function MappingCard({
                   </div>
                 ))}
               {(mapping as any).targetResources.length > 2 && (
-                <div className="text-muted-foreground text-xs pl-6 py-1">
+                <div className="text-muted-foreground text-xs pl-8 py-1">
                   +{(mapping as any).targetResources.length - 2} more targets
                 </div>
               )}
@@ -198,13 +198,13 @@ export function MappingCard({
       </div>
 
       {/* Action Buttons - Column 4 */}
-      <div className="flex flex-col gap-2 items-end pt-1">
+      <div className="flex flex-col gap-3 items-center pt-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="text-primary hover:bg-primary/10 w-8 h-8 p-0"
+              className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
               title="Update status"
             >
               <Settings className="h-4 w-4" />
@@ -247,7 +247,7 @@ export function MappingCard({
           variant="ghost"
           size="sm"
           onClick={() => onEditNotes(mapping as any)}
-          className="text-primary hover:bg-primary/10 w-8 h-8 p-0"
+          className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
           title="Edit notes"
         >
           <Edit className="h-4 w-4" />
@@ -256,7 +256,7 @@ export function MappingCard({
           variant="ghost"
           size="sm"
           onClick={() => onDelete(mapping.id as any)}
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 p-0"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-9 h-9 p-0"
           disabled={isDeleting}
           title="Delete mapping"
         >
@@ -266,14 +266,14 @@ export function MappingCard({
 
       {/* Notes Section - Full Width */}
       {mapping.notes && (
-        <div className="col-span-4 mt-3 pt-3">
-          <div className="rounded-md bg-secondary p-3">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="font-medium text-secondary-foreground/50 text-sm">
+        <div className="col-span-4 mt-4 pt-2">
+          <div className="rounded-md bg-secondary p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="font-medium text-secondary-foreground/70 text-sm">
                 Notes:
               </span>
             </div>
-            <div className="text-gray-700 text-sm text-secondary-foreground/50 leading-relaxed">
+            <div className="text-secondary-foreground/80 text-sm leading-relaxed">
               {mapping.notes}
             </div>
           </div>
