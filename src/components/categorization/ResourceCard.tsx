@@ -58,7 +58,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               fallback="lucide"
             />
             <div
-              className="min-w-0 max-w-64 flex-1 truncate font-medium"
+              className="min-w-0 flex-1 font-medium break-all"
               title={resource.resourceName || resource.resourceId}
             >
               {resource.resourceName || resource.resourceId}
@@ -111,7 +111,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               {resource.tags.slice(0, 4).map((tag, idx) => (
                 <span
                   key={`${tag.key}-${tag.value}-${idx}`}
-                  className="w-24 truncate rounded bg-muted px-2 py-1 text-muted-foreground"
+                  className="w-auto rounded bg-muted px-2 py-1 text-muted-foreground break-all"
                   title={`${tag.key}:${tag.value}`}
                 >
                   {tag.key}:{tag.value}

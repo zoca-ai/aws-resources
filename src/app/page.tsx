@@ -379,7 +379,7 @@ export default function DashboardPage() {
 												<Icon
 													className={`h-4 w-4 ${color.replace("bg-", "text-")}`}
 												/>
-												<p className="truncate font-medium text-sm">
+												<p className="font-medium text-sm break-all">
 													{formatResourceType(type)}
 												</p>
 											</div>

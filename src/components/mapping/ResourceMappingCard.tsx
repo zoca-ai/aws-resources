@@ -103,12 +103,10 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
               fallback="lucide"
             />
             <div
-              className="max-w-[200px] truncate font-medium"
+              className="font-medium break-all"
               title={resource.resourceName || resource.resourceId}
             >
-              {(resource.resourceName || resource.resourceId).length > 30
-                ? `${(resource.resourceName || resource.resourceId).substring(0, 30)}...`
-                : resource.resourceName || resource.resourceId}
+              {resource.resourceName || resource.resourceId}
             </div>
             <div className="flex items-center gap-1">
               <StatusIcon
@@ -165,7 +163,7 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
                 <ArrowRight className="h-4 w-4 text-green-600" />
                 <div className="min-w-0 flex-1">
                   <div
-                    className="truncate font-medium text-green-900 text-sm"
+                    className="font-medium text-green-900 text-sm break-all"
                     title={resource.mappedToResourceName}
                   >
                     Mapped to:{" "}
@@ -226,7 +224,7 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
                 return (
                   <span
                     key={`${tag.key}-${tag.value}-${idx}`}
-                    className="inline-block max-w-[120px] truncate rounded bg-muted px-2 py-1 text-muted-foreground"
+                    className="inline-block rounded bg-muted px-2 py-1 text-muted-foreground break-all"
                     title={tagText}
                   >
                     {tagText.length > 15

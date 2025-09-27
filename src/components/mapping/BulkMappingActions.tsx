@@ -247,7 +247,7 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
                     </span>
                     <div className="text-sm">
                       <div
-                        className="max-w-[120px] truncate font-medium"
+                        className="font-medium break-all"
                         title={
                           selectedOldResourceObjects[0]?.resourceName ||
                           selectedOldResourceObjects[0]?.resourceId
@@ -325,7 +325,7 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
                         fallback="lucide"
                       />
                       <span
-                        className="max-w-[80px] truncate text-xs"
+                        className="text-xs break-all"
                         title={resource.resourceName || resource.resourceId}
                       >
                         {(resource.resourceName || resource.resourceId).length >
@@ -467,7 +467,7 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
                       <span>{getResourceIcon(resource.resourceType)}</span>
                       <div className="min-w-0 flex-1">
                         <div
-                          className="truncate font-medium"
+                          className="font-medium break-all"
                           title={resource.resourceName || resource.resourceId}
                         >
                           {(resource.resourceName || resource.resourceId)
@@ -496,7 +496,7 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
                       <span>{getResourceIcon(resource.resourceType)}</span>
                       <div className="min-w-0 flex-1">
                         <div
-                          className="truncate font-medium"
+                          className="font-medium break-all"
                           title={resource.resourceName || resource.resourceId}
                         >
                           {(resource.resourceName || resource.resourceId)

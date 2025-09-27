@@ -64,7 +64,7 @@ export function MappingCard({
                     />
                     <div className="min-w-0 flex-1">
                       <div
-                        className="truncate font-medium text-sm leading-5"
+                        className="font-medium text-sm leading-5 break-all"
                         title={source.resourceId}
                       >
                         {source.resourceName || source.resourceId || "Unknown Resource"}
@@ -135,7 +135,7 @@ export function MappingCard({
                     />
                     <div className="min-w-0 flex-1">
                       <div
-                        className="truncate font-medium text-sm leading-5"
+                        className="font-medium text-sm leading-5 break-all"
                         title={target.resourceId}
                       >
                         {target.resourceName || target.resourceId}
@@ -171,7 +171,7 @@ export function MappingCard({
               />
               <div className="min-w-0 flex-1">
                 <div
-                  className="truncate font-medium text-sm"
+                  className="font-medium text-sm break-all"
                   title={targetResource?.resourceId}
                 >
                   {targetResource?.resourceName || targetResource?.resourceId}
