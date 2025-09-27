@@ -524,7 +524,7 @@ export function MappingCard({
             </div>
 
             {/* Source Resources */}
-            {mapping.sourceResources && mapping.sourceResources.length > 0 && (
+            {mapping.sourceResources && Array.isArray(mapping.sourceResources) && mapping.sourceResources.length > 0 ? (
               <div className="rounded-lg border bg-muted/30 p-4">
                 <h3 className="font-semibold text-sm mb-3">
                   Source Resources ({mapping.sourceResources.length})
@@ -577,10 +577,10 @@ export function MappingCard({
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Target Resources */}
-            {mapping.targetResources && mapping.targetResources.length > 0 ? (
+            {mapping.targetResources && Array.isArray(mapping.targetResources) && mapping.targetResources.length > 0 ? (
               <div className="rounded-lg border bg-muted/30 p-4">
                 <h3 className="font-semibold text-sm mb-3">
                   Target Resources ({mapping.targetResources.length})
