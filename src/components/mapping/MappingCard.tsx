@@ -50,7 +50,7 @@ export function MappingCard({
           {mapping.sourceResources && mapping.sourceResources.length > 0 ? (
             <>
               {mapping.sourceResources
-                .slice(0, 2)
+                .slice(0, 5)
                 .map((source: any, idx: number) => (
                   <div
                     key={idx}
@@ -84,9 +84,9 @@ export function MappingCard({
                     </div>
                   </div>
                 ))}
-              {mapping.sourceResources.length > 2 && (
+              {mapping.sourceResources.length > 5 && (
                 <div className="text-muted-foreground text-xs pl-8 py-1">
-                  +{mapping.sourceResources.length - 2} more sources
+                  +{mapping.sourceResources.length - 5} more sources
                 </div>
               )}
             </>
@@ -121,7 +121,7 @@ export function MappingCard({
           {(mapping as any).targetResources ? (
             <>
               {(mapping as any).targetResources
-                .slice(0, 2)
+                .slice(0, 5)
                 .map((target: any, idx: number) => (
                   <div
                     key={idx}
@@ -155,9 +155,9 @@ export function MappingCard({
                     </div>
                   </div>
                 ))}
-              {(mapping as any).targetResources.length > 2 && (
+              {(mapping as any).targetResources.length > 5 && (
                 <div className="text-muted-foreground text-xs pl-8 py-1">
-                  +{(mapping as any).targetResources.length - 2} more targets
+                  +{(mapping as any).targetResources.length - 5} more targets
                 </div>
               )}
             </>
