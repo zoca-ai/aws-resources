@@ -592,7 +592,6 @@ export function useMapping(): UseMapping {
 					mappingType: "replacement",
 					notes: notes || `Mapped ${resourceId} to ${targetResourceId}`,
 					priority: "medium",
-					category: "undecided",
 				});
 
 				toast.success("Resource mapped successfully");
@@ -724,7 +723,6 @@ export function useMapping(): UseMapping {
 							mappingType: "replacement",
 							notes: mapping.notes || `Bulk mapped ${mapping.resourceId}`,
 							priority: "medium",
-							category: "undecided",
 						}),
 					),
 				);
@@ -754,7 +752,6 @@ export function useMapping(): UseMapping {
 					mappingType: "replacement",
 					notes: mapping.notes || "Accepted pending mapping",
 					priority: "medium",
-					category: "undecided",
 				});
 
 				setGlobalState((prev) => ({
@@ -801,10 +798,9 @@ export function useMapping(): UseMapping {
 					sourceResourceId: resourceId,
 					targetResourceIds: [], // Empty array for "Map to Nothing"
 					mappingDirection: "old_to_new",
-					mappingType: mappingType as any,
+					mappingType: mappingType === "removal" ? "to_be_removed" : mappingType as any,
 					notes: notes || `Resource marked for ${mappingType}`,
 					priority: "medium",
-					category: mappingType === "removal" ? "to_be_removed" : "deprecated",
 				});
 
 				toast.success(`Resource marked for ${mappingType}`);
