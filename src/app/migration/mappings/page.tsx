@@ -10,7 +10,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useMappingOperations } from "@/hooks/useMappingOperations";
 
 // Type for migration mapping from tRPC
-import { BarChart3, Search } from "lucide-react";
+import { BarChart3, Search, Trash } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import {
@@ -66,6 +66,17 @@ export default function MappingsListPage() {
     },
   );
 
+  // Auto-fetch next page when available
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      const timer = setTimeout(() => {
+        fetchNextPage();
+      }, 300); // Small delay to prevent overwhelming the server
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   // Get filter options with caching
   const { data: resourceTypesData } = api.resources.types.useQuery(undefined, {
     staleTime: 5 * 60 * 1000, // 5 minutes - types don't change often
@@ -114,22 +125,52 @@ export default function MappingsListPage() {
       <MigrationNav />
 
       {/* Filters and Actions */}
-      <Card className="mt-6">
-        <CardContent className="">
-          <div className="flex flex-col gap-4 lg:flex-row">
-            {/* Search Bar */}
-            <div className="relative max-w-sm flex-1">
-              <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+      <Card className="mt-6 relative overflow-hidden">
+        {/* Shimmer background when loading */}
+        {(mappingsLoading || hasNextPage) && (
+          <div className="absolute inset-0 shimmer-bg -translate-x-full animate-[shimmer_2s_infinite] pointer-events-none" />
+        )}
+
+        <CardContent className="relative">
+          {/* Header with title and loading status */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Migration Mappings</h3>
+              <div className="text-sm text-muted-foreground">
+                {mappingsLoading && hasNextPage
+                  ? `Loading mappings... (${filteredMappings.length} loaded so far)`
+                  : mappingsLoading
+                    ? "Loading mappings..."
+                    : hasNextPage
+                      ? `${filteredMappings.length} mappings loaded, loading more...`
+                      : `Showing ${filteredMappings.length} mappings`}
+              </div>
+            </div>
+
+            {/* Loading indicator */}
+            {(mappingsLoading || hasNextPage) && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                {hasNextPage ? "Auto-loading..." : "Loading..."}
+              </div>
+            )}
+          </div>
+
+          {/* Search and Filters */}
+          <div className="space-y-4 w-full ">
+            {/* Primary Search */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search mappings..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
 
-            {/* Filter Controls */}
-            <div className="flex flex-wrap gap-4 lg:flex-nowrap">
+            {/* Filter Controls Row */}
+            <div className="flex flex-wrap items-center gap-3 w-full">
               <Select
                 value={mappingTypeFilter}
                 onValueChange={setMappingTypeFilter}
@@ -198,29 +239,27 @@ export default function MappingsListPage() {
                   <SelectItem value="90">Last 90 days</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+              <div className="flex-1" />
 
-          <div className="flex items-center justify-between text-muted-foreground text-sm">
-            <div>
-              {mappingsLoading || hasNextPage
-                ? "Loading mappings..."
-                : `Showing ${filteredMappings.length} mappings`}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setDebouncedSearch("");
+                    setMappingTypeFilter("all");
+                    setResourceTypeFilter("all");
+                    setRegionFilter("all");
+                    setDateFilter("all");
+                  }}
+                  className="h-10"
+                >
+                  <Trash />
+                  <span>Clear All</span>
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setDebouncedSearch("");
-                setMappingTypeFilter("all");
-                setResourceTypeFilter("all");
-                setRegionFilter("all");
-                setDateFilter("all");
-              }}
-            >
-              Clear Filters
-            </Button>
           </div>
         </CardContent>
       </Card>

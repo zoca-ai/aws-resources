@@ -1,43 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactElement } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { MappingDetailsDialog } from "./MappingDetailsDialog";
-import { AwsIcon } from "@/components/ui/aws-icon";
-import { formatAwsResourceType } from "@/lib/aws-utils";
-import {
-  getMappingTypeConfig,
-  formatMappingDirection,
-} from "@/lib/utils/mapping";
+import { ResourceDisplay } from "./ResourceDisplay";
+import { MappingTypeDisplay } from "./MappingTypeDisplay";
+import { MappingActions } from "./MappingActions";
+import { getMappingTypeConfig } from "@/lib/utils/mapping";
 import type { MigrationMapping } from "@/lib/types/mapping";
-import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Edit,
-  Eye,
-  Settings,
-  Trash2,
-  XCircle,
-  GitBranch,
-  Merge,
-  Plus,
-  Shuffle,
-  Split,
-  Timer,
-  Tags,
-  Hand,
-  FileText,
-} from "lucide-react";
 
 interface MappingCardProps {
   mapping: MigrationMapping;
@@ -60,353 +29,65 @@ export function MappingCard({
   const typeConfig = getMappingTypeConfig(mapping);
   const TypeIcon = typeConfig.icon;
 
+  // Helper function to get target resources message
+  const getTargetResourcesMessage = () => {
+    switch (typeConfig.label) {
+      case "Deprecated":
+        return "Resource marked as deprecated";
+      case "To Be Removed":
+        return "Resource marked for removal";
+      case "Keep Manual":
+        return "Keep as manually managed";
+      case "Migrate to Terraform":
+        return "Migrate to Terraform";
+      case "Undecided":
+        return "Migration approach not decided";
+      case "Staging":
+        return "Resource staged for migration";
+      case "Chrone":
+        return "Chronological migration category";
+      default:
+        return "No target resources";
+    }
+  };
+
   return (
     <div
-      className={`grid grid-cols-[1fr_150px_1fr_120px] gap-6 rounded-lg border p-6 transition-colors hover:bg-accent/50 mb-4 items-start ${typeConfig.color}`}
+      className={`grid grid-cols-[1fr_150px_1fr_120px] gap-6 rounded-lg border border-border/30  p-6 transition-colors hover:bg-accent/50 mb-4 items-start`}
     >
       {/* Source Resources - Column 1 */}
-      <div className="min-w-0 h-full">
-        <div className="space-y-2 grid grid-cols-3">
-          {mapping.sourceResources && mapping.sourceResources.length > 0 ? (
-            <>
-              {mapping.sourceResources
-                .slice(0, 5)
-                .map((source: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 min-w-0 py-2"
-                  >
-                    <AwsIcon
-                      resourceType={source.resourceType || "unknown"}
-                      size={40}
-                      className="flex-shrink-0 mt-0.5"
-                      fallback="lucide"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-medium text-sm leading-5 break-all"
-                        title={source.resourceId}
-                      >
-                        {source.resourceName ||
-                          source.resourceId ||
-                          "Unknown Resource"}
-                      </div>
-                      <div className="mt-1 space-y-1">
-                        <Badge variant="outline" className="text-xs">
-                          {formatAwsResourceType(
-                            source.resourceType || "unknown",
-                          )}
-                        </Badge>
-                        <br />
-                        <Badge
-                          variant="outline"
-                          className="border-blue-200 bg-blue-50 text-blue-800 text-xs"
-                        >
-                          {source.category || "old"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              {mapping.sourceResources.length > 5 && (
-                <div className="text-muted-foreground text-xs pl-8 py-1">
-                  +{mapping.sourceResources.length - 5} more sources
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-muted-foreground text-sm flex items-center gap-2">
-              <TypeIcon className="h-4 w-4" />
-              No source resources
-            </div>
-          )}
-        </div>
+      <div className="min-w-0 h-full border border-border rounded-md p-4">
+        <ResourceDisplay
+          resources={mapping.sourceResources || []}
+          maxVisible={5}
+          emptyStateMessage="No source resources"
+          emptyStateIcon={TypeIcon}
+        />
       </div>
 
       {/* Mapping Direction - Column 2 */}
-      <div className="flex flex-col items-center justify-center gap-3 py-4 min-h-[120px]">
-        <TypeIcon className="h-6 w-6 text-muted-foreground" />
-        <Badge
-          variant="outline"
-          className={`text-xs text-center px-2 py-1 ${typeConfig.badge}`}
-        >
-          {typeConfig.label}
-        </Badge>
-        <Badge variant="outline" className="text-xs text-center px-2 py-1">
-          {formatMappingDirection(mapping.mappingDirection || "old_to_new")}
-        </Badge>
-        <div className="text-center">
-          <Badge variant="secondary" className="text-xs px-2 py-1">
-            {mapping.migrationStatus?.replace("_", " ") || "not started"}
-          </Badge>
-        </div>
-      </div>
+      <MappingTypeDisplay mapping={mapping} />
 
       {/* Target Resources - Column 3 */}
-      <div className="min-w-0 h-full">
-        <div className="space-y-2 grid grid-cols-3">
-          {(mapping as any).targetResources ? (
-            <>
-              {(mapping as any).targetResources
-                .slice(0, 5)
-                .map((target: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 min-w-0 py-2"
-                  >
-                    <AwsIcon
-                      resourceType={target.resourceType}
-                      size={40}
-                      className="flex-shrink-0 mt-0.5"
-                      fallback="lucide"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-medium text-sm leading-5 break-all"
-                        title={target.resourceId}
-                      >
-                        {target.resourceName || target.resourceId}
-                      </div>
-                      <div className="mt-1 space-y-1">
-                        <Badge variant="outline" className="text-xs">
-                          {formatAwsResourceType(target.resourceType)}
-                        </Badge>
-                        <br />
-                        <Badge
-                          variant="outline"
-                          className="border-green-200 bg-green-50 text-green-800 text-xs"
-                        >
-                          {target.category || "new"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              {(mapping as any).targetResources.length > 5 && (
-                <div className="text-muted-foreground text-xs pl-8 py-1">
-                  +{(mapping as any).targetResources.length - 5} more targets
-                </div>
-              )}
-            </>
-          ) : (
-            mapping.targetResources?.map((targetResource, idx) => (
-              <div key={idx} className="flex items-center gap-2 min-w-0">
-                <AwsIcon
-                  resourceType={targetResource?.resourceType || ""}
-                  size={20}
-                  className="flex-shrink-0"
-                  fallback="lucide"
-                />
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="font-medium text-sm break-all"
-                    title={targetResource?.resourceId}
-                  >
-                    {targetResource?.resourceName || targetResource?.resourceId}
-                  </div>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <Badge variant="outline" className="text-xs">
-                      {targetResource?.resourceType &&
-                        formatAwsResourceType(targetResource?.resourceType)}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )) || (
-              <div className="text-muted-foreground text-sm flex items-center gap-2">
-                <TypeIcon className="h-4 w-4" />
-                {typeConfig.label === "Deprecated" &&
-                  "Resource marked as deprecated"}
-                {typeConfig.label === "To Be Removed" &&
-                  "Resource marked for removal"}
-                {typeConfig.label === "Keep Manual" &&
-                  "Keep as manually managed"}
-                {typeConfig.label === "Migrate to Terraform" &&
-                  "Migrate to Terraform"}
-                {typeConfig.label === "Undecided" &&
-                  "Migration approach not decided"}
-                {typeConfig.label === "Staging" &&
-                  "Resource staged for migration"}
-                {typeConfig.label === "Chrone" &&
-                  "Chronological migration category"}
-                {!mapping.targetResources?.length && "No target resources"}
-              </div>
-            )
-          )}
-        </div>
+      <div className="min-w-0 h-full border border-border rounded-md p-4">
+        <ResourceDisplay
+          resources={mapping.targetResources || []}
+          maxVisible={5}
+          emptyStateMessage={getTargetResourcesMessage()}
+          emptyStateIcon={TypeIcon}
+        />
       </div>
 
       {/* Action Buttons - Column 4 */}
-      <div className="flex flex-col gap-3 items-center pt-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
-              title="Update status"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => onUpdateStatus(mapping.id as any, "not_started")}
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Not Started
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateStatus(mapping.id as any, "in_progress")}
-            >
-              <AlertCircle className="mr-2 h-4 w-4" />
-              In Progress
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateStatus(mapping.id as any, "completed")}
-            >
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Completed
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateStatus(mapping.id as any, "migrated")}
-            >
-              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-              Migrated
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateStatus(mapping.id as any, "failed")}
-            >
-              <XCircle className="mr-2 h-4 w-4 text-red-600" />
-              Failed
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
-              title="Change mapping type"
-            >
-              <Tags className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "replacement")
-              }
-            >
-              <Shuffle className="mr-2 h-4 w-4" />
-              Replacement
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "consolidation")
-              }
-            >
-              <Merge className="mr-2 h-4 w-4" />
-              Consolidation
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "split")}
-            >
-              <Split className="mr-2 h-4 w-4" />
-              Split
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "dependency")
-              }
-            >
-              <GitBranch className="mr-2 h-4 w-4" />
-              Dependency
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "keep_manual")
-              }
-            >
-              <Hand className="mr-2 h-4 w-4" />
-              Keep Manual
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "migrate_terraform")
-              }
-            >
-              <GitBranch className="mr-2 h-4 w-4" />
-              Migrate to Terraform
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "to_be_removed")
-              }
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              To Be Removed
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "deprecated")
-              }
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Deprecated
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                onUpdateMappingType(mapping.id as any, "undecided")
-              }
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Undecided
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "staging")}
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Staging
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "chrone")}
-            >
-              <Timer className="mr-2 h-4 w-4" />
-              Chrone
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowDetails(true)}
-          className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
-          title="View details"
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEditNotes(mapping as any)}
-          className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
-          title="Edit notes"
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(mapping.id as any)}
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-9 h-9 p-0"
-          disabled={isDeleting}
-          title="Delete mapping"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+      <MappingActions
+        mapping={mapping}
+        onEditNotes={onEditNotes}
+        onUpdateStatus={onUpdateStatus}
+        onUpdateMappingType={onUpdateMappingType}
+        onDelete={onDelete}
+        onViewDetails={() => setShowDetails(true)}
+        isDeleting={isDeleting}
+      />
 
       {/* Notes Section - Full Width */}
       {mapping.notes && (

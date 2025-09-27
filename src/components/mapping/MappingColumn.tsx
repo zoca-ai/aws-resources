@@ -78,7 +78,10 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
   onSelectOldResource,
 }) => {
   const hasFilters =
-    searchTerm !== "" || typeFilter !== "all" || regionFilter !== "all" || mappingStatusFilter !== "unmapped";
+    searchTerm !== "" ||
+    typeFilter !== "all" ||
+    regionFilter !== "all" ||
+    mappingStatusFilter !== "unmapped";
   const placeholder = `Search ${title.toLowerCase()}...`;
 
   return (

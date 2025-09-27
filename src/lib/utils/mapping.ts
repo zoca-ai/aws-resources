@@ -28,79 +28,79 @@ export const getMappingTypeConfig = (mapping: any): MappingTypeConfig => {
     case "replacement":
       return {
         icon: Shuffle,
-        color: "border-primary",
-        badge: "border-primary",
+        color: "border-blue-300 border-2",
+        badge: "bg-blue-50 text-blue-700 border-blue-100",
         label: "Replacement",
       };
     case "consolidation":
       return {
         icon: Merge,
-        color: "border-accent",
-        badge: "border-accent",
+        color: "border-green-300 border-2",
+        badge: "bg-green-50 text-green-700 border-green-100",
         label: "Consolidation",
       };
     case "split":
       return {
         icon: Split,
-        color: "border-secondary",
-        badge: "border-secondary",
+        color: "border-purple-300 border-2",
+        badge: "bg-purple-50 text-purple-700 border-purple-100",
         label: "Split",
       };
     case "dependency":
       return {
         icon: GitBranch,
-        color: "border-muted",
-        badge: "border-muted",
+        color: "border-orange-300 border-2",
+        badge: "bg-orange-50 text-orange-700 border-orange-100",
         label: "Dependency",
       };
     case "keep_manual":
       return {
         icon: Hand,
-        color: "border-border",
-        badge: "border-border",
+        color: "border-cyan-300 border-2",
+        badge: "bg-cyan-50 text-cyan-700 border-cyan-100",
         label: "Keep Manual",
       };
     case "migrate_terraform":
       return {
         icon: GitBranch,
-        color: "border-primary",
-        badge: "border-primary",
+        color: "border-indigo-300 border-2",
+        badge: "bg-indigo-50 text-indigo-700 border-indigo-100",
         label: "Migrate to Terraform",
       };
     case "to_be_removed":
       return {
         icon: Trash2,
-        color: "border-destructive",
-        badge: "border-destructive",
+        color: "border-red-300 border-2",
+        badge: "bg-red-50 text-red-700 border-red-100",
         label: "To Be Removed",
       };
     case "deprecated":
       return {
         icon: AlertTriangle,
-        color: "border-input",
-        badge: "border-input",
+        color: "border-yellow-300 border-2",
+        badge: "bg-yellow-50 text-yellow-700 border-yellow-100",
         label: "Deprecated",
       };
     case "staging":
       return {
         icon: Clock,
-        color: "border-accent",
-        badge: "border-accent",
+        color: "border-teal-300 border-2",
+        badge: "bg-teal-50 text-teal-700 border-teal-100",
         label: "Staging",
       };
     case "chrone":
       return {
         icon: Timer,
-        color: "border-secondary",
-        badge: "border-secondary",
+        color: "border-pink-300 border-2",
+        badge: "bg-pink-50 text-pink-700 border-pink-100",
         label: "Chrone",
       };
     case "undecided":
     default:
       return {
         icon: FileText,
-        color: "border-muted",
-        badge: "border-muted",
+        color: "border-gray-300 border-2",
+        badge: "bg-gray-50 text-gray-700 border-gray-100",
         label: "Undecided",
       };
   }
