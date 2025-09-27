@@ -270,7 +270,7 @@ export const migrationRouter = createTRPCRouter({
           .innerJoin(
             migrationMappingSources,
             eq(migrationMappingSources.mappingId, migrationMappings.id)
-          );
+          ) as any;
 
         if (resourceType && resourceType !== "all") {
           conditions.push(eq(migrationMappingSources.resourceType, resourceType));
@@ -281,7 +281,7 @@ export const migrationRouter = createTRPCRouter({
         }
       }
 
-      baseQuery = baseQuery.orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
+      baseQuery = (baseQuery as any).orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
 
       let mappingsList;
       try {

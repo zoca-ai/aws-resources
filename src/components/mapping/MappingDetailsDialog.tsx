@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AwsIcon } from "@/components/ui/aws-icon";
-import { formatAwsResourceType } from "@/lib/aws-utils";
 import {
   getMappingTypeConfig,
   formatMappingDirection,
@@ -40,7 +39,7 @@ export function MappingDetailsDialog({
     resources: any[] | undefined,
     title: string,
     bgClass: string = "bg-background/30",
-  ): React.ReactElement => {
+  ): React.ReactNode => {
     const resourceArray = resources as any[];
     if (!resourceArray || resourceArray.length === 0) {
       return <div />;
@@ -222,22 +221,18 @@ export function MappingDetailsDialog({
             </div>
           </div>
 
-          {/* Source Resources */}
           {renderResourceSection(
             mapping.sourceResources,
             "Source Resources",
             "bg-background/30",
           )}
 
-          {/* Target Resources */}
-          {/* @ts-ignore */}
           {renderResourceSection(
             mapping.targetResources,
             "Target Resources",
             "bg-background",
           )}
 
-          {/* Notes */}
           {mapping.notes && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">Notes</h3>
@@ -247,8 +242,7 @@ export function MappingDetailsDialog({
             </div>
           )}
 
-          {/* Description */}
-          {mapping.mappingDescription && (
+          {(mapping.mappingDescription as any) && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">Description</h3>
               <div className="bg-background/20 p-3 rounded-lg border text-sm">
@@ -257,7 +251,6 @@ export function MappingDetailsDialog({
             </div>
           )}
 
-          {/* History */}
           {mapping.history && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">History</h3>
