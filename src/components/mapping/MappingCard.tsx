@@ -17,18 +17,27 @@ import {
 import type { MigrationMapping } from "@/lib/types/mapping";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   Clock,
   Edit,
   Settings,
   Trash2,
   XCircle,
+  GitBranch,
+  Merge,
+  Plus,
+  Shuffle,
+  Split,
+  Timer,
+  Tags,
 } from "lucide-react";
 
 interface MappingCardProps {
   mapping: MigrationMapping;
   onEditNotes: (mapping: MigrationMapping) => void;
   onUpdateStatus: (mappingId: number, status: string) => void;
+  onUpdateMappingType: (mappingId: number, mappingType: string) => void;
   onDelete: (mappingId: number) => void;
   isDeleting: boolean;
 }
@@ -37,6 +46,7 @@ export function MappingCard({
   mapping,
   onEditNotes,
   onUpdateStatus,
+  onUpdateMappingType,
   onDelete,
   isDeleting,
 }: MappingCardProps) {
@@ -254,6 +264,74 @@ export function MappingCard({
             >
               <XCircle className="mr-2 h-4 w-4 text-red-600" />
               Failed
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:bg-primary/10 w-9 h-9 p-0"
+              title="Change mapping type"
+            >
+              <Tags className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "replacement")}
+            >
+              <Shuffle className="mr-2 h-4 w-4" />
+              Replacement
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "consolidation")}
+            >
+              <Merge className="mr-2 h-4 w-4" />
+              Consolidation
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "split")}
+            >
+              <Split className="mr-2 h-4 w-4" />
+              Split
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "dependency")}
+            >
+              <GitBranch className="mr-2 h-4 w-4" />
+              Dependency
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "deprecation")}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Deprecation
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "removal")}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Removal
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "addition")}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Addition
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "staging")}
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              Staging
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "chrone")}
+            >
+              <Timer className="mr-2 h-4 w-4" />
+              Chrone
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

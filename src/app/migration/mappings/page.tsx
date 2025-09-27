@@ -65,6 +65,7 @@ export default function MappingsListPage() {
     handleSaveNotes,
     handleCancelEdit,
     handleUpdateStatus,
+    handleUpdateMappingType,
   } = useMappingOperations();
 
   // Flatten mappings from all pages
@@ -226,6 +227,7 @@ export default function MappingsListPage() {
                     mapping={mapping as any}
                     onEditNotes={handleEditNotes}
                     onUpdateStatus={handleUpdateStatus}
+                    onUpdateMappingType={handleUpdateMappingType}
                     onDelete={handleDeleteMapping}
                     isDeleting={deleteMapping.isPending}
                   />

@@ -95,6 +95,19 @@ export function useMappingOperations() {
     }
   };
 
+  const handleUpdateMappingType = async (mappingId: number, newMappingType: string) => {
+    try {
+      await updateMapping.mutateAsync({
+        id: mappingId,
+        mappingType: newMappingType as any,
+      });
+      toast.success(`Mapping type updated to ${newMappingType}`);
+    } catch (error) {
+      console.error("Failed to update mapping type:", error);
+      toast.error("Failed to update mapping type");
+    }
+  };
+
   return {
     // State
     editingMapping,
@@ -111,5 +124,6 @@ export function useMappingOperations() {
     handleSaveNotes,
     handleCancelEdit,
     handleUpdateStatus,
+    handleUpdateMappingType,
   };
 }

@@ -1,0 +1,46 @@
+---
+- name: Deploy AWS Resources Application
+  hosts: production
+  remote_user: ubuntu
+  vars:
+    app_dir: "~/aws-resources"
+    ssh_key: "~/.ssh/nextjs-medium-key.pem"
+
+  tasks:
+    - name: Sync application files
+      synchronize:
+        src: "{{ playbook_dir }}/../"
+        dest: "{{ app_dir }}/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=.next"
+          - "--exclude=dist"
+          - "--exclude=.env.local"
+          - "--exclude=ansible"
+
+    - name: Check directory contents
+      command: ls -la
+      args:
+        chdir: "{{ app_dir }}"
+      register: dir_contents
+
+    - name: Show directory contents
+      debug:
+        var: dir_contents.stdout_lines
+
+    - name: Install dependencies
+      command: pnpm install
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Build application
+      command: pnpm build
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Restart PM2 processes
+      command: pm2 restart all
+      args:
+        chdir: "{{ app_dir }}"
