@@ -641,7 +641,6 @@ export function useMapping(): UseMapping {
 						options?.notes ||
 						`Mapped ${sourceResourceId} to ${targetResourceIds.length} target resources`,
 					priority: "medium",
-					category: "undecided",
 				});
 
 				toast.success(

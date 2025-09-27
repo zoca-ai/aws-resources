@@ -506,9 +506,6 @@ export const migrationRouter = createTRPCRouter({
         priority: z
           .enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]])
           .default("medium"),
-        category: z
-          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
-          .default("undecided"),
       }),
     )
     .mutation(async ({ input }) => {
@@ -519,7 +516,6 @@ export const migrationRouter = createTRPCRouter({
         mappingType,
         notes,
         priority,
-        category,
       } = input;
 
       // Get source resource details
@@ -558,7 +554,7 @@ export const migrationRouter = createTRPCRouter({
           mappingGroupId,
           mappingDirection,
           priority,
-          category,
+          category: mappingType,
           notes,
           history: JSON.stringify([
             {
@@ -1178,9 +1174,20 @@ export const migrationRouter = createTRPCRouter({
       }
 
       // Update history
-      const currentHistory = mapping.history
-        ? JSON.parse(mapping.history as string)
-        : [];
+      let currentHistory: any[] = [];
+      try {
+        if (mapping.history) {
+          if (typeof mapping.history === 'string') {
+            currentHistory = JSON.parse(mapping.history);
+          } else if (Array.isArray(mapping.history)) {
+            currentHistory = mapping.history;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse mapping history, starting fresh:', error);
+        currentHistory = [];
+      }
+
       currentHistory.push({
         action: "updated",
         timestamp: new Date(),

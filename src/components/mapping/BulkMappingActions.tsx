@@ -111,12 +111,6 @@ const MAPPING_TYPES = [
     description: "Resource is deprecated but kept for now",
   },
   {
-    value: "undecided",
-    label: "Undecided",
-    icon: FileText,
-    description: "Migration approach not yet decided",
-  },
-  {
     value: "staging",
     label: "Staging",
     icon: Clock,
