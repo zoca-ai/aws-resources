@@ -212,11 +212,19 @@ export function MappingCard({
                 <TypeIcon className="h-4 w-4" />
                 {typeConfig.label === "Deprecated" &&
                   "Resource marked as deprecated"}
-                {typeConfig.label === "For Removal" &&
+                {typeConfig.label === "To Be Removed" &&
                   "Resource marked for removal"}
-                {typeConfig.label === "Newly Added" && "Newly added resource"}
-                {typeConfig.label === "No Targets" && "No target resources"}
-                {typeConfig.label === "Standard" && "No target resources"}
+                {typeConfig.label === "Keep Manual" &&
+                  "Keep as manually managed"}
+                {typeConfig.label === "Migrate to Terraform" &&
+                  "Migrate to Terraform"}
+                {typeConfig.label === "Undecided" &&
+                  "Migration approach not decided"}
+                {typeConfig.label === "Staging" &&
+                  "Resource staged for migration"}
+                {typeConfig.label === "Chrone" &&
+                  "Chronological migration category"}
+                {!mapping.targetResources?.length && "No target resources"}
               </div>
             )
           )}
@@ -282,31 +290,71 @@ export function MappingCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "keep_manual")}
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "replacement")
+              }
+            >
+              <Shuffle className="mr-2 h-4 w-4" />
+              Replacement
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "consolidation")
+              }
+            >
+              <Merge className="mr-2 h-4 w-4" />
+              Consolidation
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "split")}
+            >
+              <Split className="mr-2 h-4 w-4" />
+              Split
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "dependency")
+              }
+            >
+              <GitBranch className="mr-2 h-4 w-4" />
+              Dependency
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "keep_manual")
+              }
             >
               <Hand className="mr-2 h-4 w-4" />
               Keep Manual
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "migrate_terraform")}
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "migrate_terraform")
+              }
             >
               <GitBranch className="mr-2 h-4 w-4" />
               Migrate to Terraform
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "to_be_removed")}
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "to_be_removed")
+              }
             >
               <Trash2 className="mr-2 h-4 w-4" />
               To Be Removed
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "deprecated")}
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "deprecated")
+              }
             >
               <AlertTriangle className="mr-2 h-4 w-4" />
               Deprecated
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "undecided")}
+              onClick={() =>
+                onUpdateMappingType(mapping.id as any, "undecided")
+              }
             >
               <FileText className="mr-2 h-4 w-4" />
               Undecided
@@ -364,4 +412,3 @@ export function MappingCard({
     </div>
   );
 }
-

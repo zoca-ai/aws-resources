@@ -34,6 +34,8 @@ import {
   X,
   Clock,
   Timer,
+  Hand,
+  FileText,
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
@@ -85,22 +87,34 @@ const MAPPING_TYPES = [
     description: "Related/dependent resources",
   },
   {
-    value: "deprecation",
-    label: "Deprecation",
-    icon: AlertTriangle,
-    description: "Resource is deprecated but kept for now",
+    value: "keep_manual",
+    label: "Keep Manual",
+    icon: Hand,
+    description: "Keep resource as manually managed",
   },
   {
-    value: "removal",
-    label: "Removal",
+    value: "migrate_terraform",
+    label: "Migrate to Terraform",
+    icon: GitBranch,
+    description: "Migrate resource to Terraform management",
+  },
+  {
+    value: "to_be_removed",
+    label: "To Be Removed",
     icon: Trash2,
     description: "Resource will be removed/deleted",
   },
   {
-    value: "addition",
-    label: "Addition",
-    icon: Plus,
-    description: "Newly added resource with no legacy equivalent",
+    value: "deprecated",
+    label: "Deprecated",
+    icon: AlertTriangle,
+    description: "Resource is deprecated but kept for now",
+  },
+  {
+    value: "undecided",
+    label: "Undecided",
+    icon: FileText,
+    description: "Migration approach not yet decided",
   },
   {
     value: "staging",

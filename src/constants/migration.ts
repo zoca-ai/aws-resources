@@ -27,6 +27,10 @@ export type MigrationStatus =
 	(typeof MIGRATION_STATUS)[keyof typeof MIGRATION_STATUS];
 
 export const MIGRATION_MAPPING_CATEGORIES = {
+	REPLACEMENT: "replacement",
+	CONSOLIDATION: "consolidation",
+	SPLIT: "split",
+	DEPENDENCY: "dependency",
 	KEEP_MANUAL: "keep_manual",
 	MIGRATE_TERRAFORM: "migrate_terraform",
 	TO_BE_REMOVED: "to_be_removed",

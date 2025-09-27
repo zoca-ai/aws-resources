@@ -136,9 +136,11 @@ export default function MappingsListPage() {
                   <SelectItem value="consolidation">Consolidation</SelectItem>
                   <SelectItem value="split">Split</SelectItem>
                   <SelectItem value="dependency">Dependency</SelectItem>
-                  <SelectItem value="deprecation">Deprecated</SelectItem>
-                  <SelectItem value="removal">For Removal</SelectItem>
-                  <SelectItem value="addition">Newly Added</SelectItem>
+                  <SelectItem value="keep_manual">Keep Manual</SelectItem>
+                  <SelectItem value="migrate_terraform">Migrate to Terraform</SelectItem>
+                  <SelectItem value="to_be_removed">To Be Removed</SelectItem>
+                  <SelectItem value="deprecated">Deprecated</SelectItem>
+                  <SelectItem value="undecided">Undecided</SelectItem>
                   <SelectItem value="staging">Staging</SelectItem>
                   <SelectItem value="chrone">Chrone</SelectItem>
                 </SelectContent>
