@@ -58,7 +58,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 						headers.set("x-trpc-source", "nextjs-react");
 						return headers;
 					},
-					// Enable request batching for better performance
+					// Disable batching temporarily to fix comma-separated path issue
+					maxBatchSize: 1,
 					maxURLLength: 2083,
 				}),
 			],
