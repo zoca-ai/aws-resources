@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,9 +36,94 @@ export function MappingDetailsDialog({
     navigator.clipboard.writeText(text);
   };
 
+  const renderResourceSection = (
+    resources: any[] | undefined,
+    title: string,
+    bgClass: string = "bg-background/30",
+  ): React.ReactElement => {
+    const resourceArray = resources as any[];
+    if (!resourceArray || resourceArray.length === 0) {
+      return <div />;
+    }
+
+    return (
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <h3 className="font-semibold text-sm mb-3">
+          {title} ({resourceArray.length})
+        </h3>
+        <div className="space-y-3">
+          {resourceArray.map((resource: any, idx: number) => (
+            <div
+              key={idx}
+              className={`flex items-start gap-3 p-3 ${bgClass} rounded-lg border`}
+            >
+              <AwsIcon
+                resourceType={resource.resourceType || "unknown"}
+                size={32}
+                className="flex-shrink-0 mt-0.5"
+                fallback="lucide"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">
+                    {resource.resourceName || resource.resourceId}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(resource.resourceId || "")}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div>
+                    <span className="font-medium">ID:</span>{" "}
+                    {resource.resourceId}
+                  </div>
+                  <div>
+                    <span className="font-medium">Type:</span>{" "}
+                    {resource.resourceType}
+                  </div>
+                  <div>
+                    <span className="font-medium">Region:</span>{" "}
+                    {resource.region || "N/A"}
+                  </div>
+                  <div>
+                    <span className="font-medium">Account:</span>{" "}
+                    {resource.awsAccountId || "N/A"}
+                  </div>
+                  {resource.resourceArn && (
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">ARN:</span>
+                      <span className="font-mono break-all">
+                        {resource.resourceArn}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          copyToClipboard(resource.resourceArn || "")
+                        }
+                        className="h-4 w-4 p-0"
+                      >
+                        <Copy className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
@@ -51,9 +137,7 @@ export function MappingDetailsDialog({
         <div className="space-y-6">
           {/* Mapping Metadata */}
           <div className="rounded-lg border bg-muted/30 p-4">
-            <h3 className="font-semibold text-sm mb-3">
-              Mapping Information
-            </h3>
+            <h3 className="font-semibold text-sm mb-3">Mapping Information</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -139,170 +223,25 @@ export function MappingDetailsDialog({
           </div>
 
           {/* Source Resources */}
-          {(mapping.sourceResources as any)?.length > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <h3 className="font-semibold text-sm mb-3">
-                Source Resources (
-                {(mapping.sourceResources as any)?.length || 0})
-              </h3>
-              <div className="space-y-3">
-                {(mapping.sourceResources as any)?.map(
-                  (source: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-3 p-3 bg-background rounded border"
-                    >
-                      <AwsIcon
-                        resourceType={source.resourceType || "unknown"}
-                        size={32}
-                        className="flex-shrink-0 mt-0.5"
-                        fallback="lucide"
-                      />
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {source.resourceName || source.resourceId}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              copyToClipboard(source.resourceId || "")
-                            }
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <div>
-                            <span className="font-medium">ID:</span>{" "}
-                            {source.resourceId}
-                          </div>
-                          <div>
-                            <span className="font-medium">Type:</span>{" "}
-                            {source.resourceType}
-                          </div>
-                          <div>
-                            <span className="font-medium">Region:</span>{" "}
-                            {source.region || "N/A"}
-                          </div>
-                          <div>
-                            <span className="font-medium">Account:</span>{" "}
-                            {source.awsAccountId || "N/A"}
-                          </div>
-                          {source.resourceArn && (
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">ARN:</span>
-                              <span className="font-mono break-all">
-                                {source.resourceArn}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  copyToClipboard(source.resourceArn || "")
-                                }
-                                className="h-4 w-4 p-0"
-                              >
-                                <Copy className="h-2 w-2" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
+          {renderResourceSection(
+            mapping.sourceResources,
+            "Source Resources",
+            "bg-background/30",
           )}
 
           {/* Target Resources */}
-          {mapping.targetResources?.length > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <h3 className="font-semibold text-sm mb-3">
-                Target Resources (
-                {(mapping.targetResources as any)?.length || 0})
-              </h3>
-              <div className="space-y-3">
-                {(mapping.targetResources as any)?.map(
-                  (target: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-3 p-3 bg-background rounded border"
-                    >
-                      <AwsIcon
-                        resourceType={target.resourceType || "unknown"}
-                        size={32}
-                        className="flex-shrink-0 mt-0.5"
-                        fallback="lucide"
-                      />
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {target.resourceName || target.resourceId}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              copyToClipboard(target.resourceId || "")
-                            }
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <div>
-                            <span className="font-medium">ID:</span>{" "}
-                            {target.resourceId}
-                          </div>
-                          <div>
-                            <span className="font-medium">Type:</span>{" "}
-                            {target.resourceType}
-                          </div>
-                          <div>
-                            <span className="font-medium">Region:</span>{" "}
-                            {target.region || "N/A"}
-                          </div>
-                          <div>
-                            <span className="font-medium">Account:</span>{" "}
-                            {target.awsAccountId || "N/A"}
-                          </div>
-                          {target.resourceArn && (
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">ARN:</span>
-                              <span className="font-mono break-all">
-                                {target.resourceArn}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  copyToClipboard(target.resourceArn || "")
-                                }
-                                className="h-4 w-4 p-0"
-                              >
-                                <Copy className="h-2 w-2" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
+          {/* @ts-ignore */}
+          {renderResourceSection(
+            mapping.targetResources,
+            "Target Resources",
+            "bg-background",
           )}
 
           {/* Notes */}
           {mapping.notes && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">Notes</h3>
-              <div className="bg-background p-3 rounded border text-sm">
+              <div className="bg-background/10 p-3 rounded-lg border text-sm">
                 {mapping.notes}
               </div>
             </div>
@@ -312,7 +251,7 @@ export function MappingDetailsDialog({
           {mapping.mappingDescription && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">Description</h3>
-              <div className="bg-background p-3 rounded border text-sm">
+              <div className="bg-background/20 p-3 rounded-lg border text-sm">
                 {mapping.mappingDescription}
               </div>
             </div>
@@ -322,7 +261,7 @@ export function MappingDetailsDialog({
           {mapping.history && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <h3 className="font-semibold text-sm mb-3">History</h3>
-              <div className="bg-background p-3 rounded border">
+              <div className="bg-background/20 p-3 rounded-lg border">
                 <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
                   {typeof mapping.history === "string"
                     ? mapping.history
