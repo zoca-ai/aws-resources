@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { VirtualScroll } from "@/components/ui/virtual-scroll";
 import { MappingListSkeleton } from "@/components/mapping/MappingSkeleton";
 import { MappingCard } from "@/components/mapping/MappingCard";
 import { MappingNotesDialog } from "@/components/mapping/MappingNotesDialog";
@@ -79,19 +78,6 @@ export default function MappingsListPage() {
   const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [containerHeight, setContainerHeight] = useState(600); // Default height
-
-  // Calculate container height on mount and resize
-  useEffect(() => {
-    const calculateHeight = () => {
-      const height = window.innerHeight - 300; // Account for header, nav, filters
-      setContainerHeight(Math.max(400, height)); // Minimum 400px
-    };
-
-    calculateHeight();
-    window.addEventListener("resize", calculateHeight);
-    return () => window.removeEventListener("resize", calculateHeight);
-  }, []);
 
   // Apply filters using extracted utility
   const filteredMappings = useMemo(() => {
@@ -224,18 +210,15 @@ export default function MappingsListPage() {
         </CardContent>
       </Card>
 
-      {/* Mappings List with Virtual Scrolling */}
-      <div className="flex-1 mx-6 mt-6 mb-6">
+      {/* Mappings List */}
+      <div className="flex-1 mx-6 mt-6 mb-6 overflow-hidden">
         <Card className="h-full">
           <CardContent className="pt-6 h-full">
             {mappingsLoading && mappings.length === 0 ? (
               <MappingListSkeleton count={10} />
             ) : filteredMappings.length > 0 ? (
-              <VirtualScroll
-                items={filteredMappings}
-                itemHeight={150}
-                containerHeight={containerHeight}
-                renderItem={(mapping, index) => (
+              <div className="h-full overflow-y-auto space-y-4">
+                {filteredMappings.map((mapping, index) => (
                   <MappingCard
                     key={mapping.id || `mapping-${index}`}
                     mapping={mapping as any}
@@ -244,15 +227,19 @@ export default function MappingsListPage() {
                     onDelete={handleDeleteMapping}
                     isDeleting={deleteMapping.isPending}
                   />
+                ))}
+                {hasNextPage && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      variant="outline"
+                    >
+                      {isFetchingNextPage ? "Loading..." : "Load More"}
+                    </Button>
+                  </div>
                 )}
-                onLoadMore={() => {
-                  if (hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage();
-                  }
-                }}
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-              />
+              </div>
             ) : (
               <div className="py-12 text-center text-gray-500">
                 <BarChart3 className="mx-auto mb-4 h-12 w-12 text-gray-400" />

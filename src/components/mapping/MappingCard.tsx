@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AwsIcon } from "@/components/ui/aws-icon";
 import { formatAwsResourceType } from "@/lib/aws-utils";
-import { getMappingTypeConfig, formatMappingDirection } from "@/lib/utils/mapping";
+import {
+  getMappingTypeConfig,
+  formatMappingDirection,
+} from "@/lib/utils/mapping";
 import type { MigrationMapping } from "@/lib/types/mapping";
 import {
   AlertCircle,
@@ -45,8 +48,8 @@ export function MappingCard({
       className={`grid grid-cols-[1fr_150px_1fr_120px] gap-6 rounded-lg border p-6 transition-colors hover:bg-accent/50 mb-4 items-start ${typeConfig.color}`}
     >
       {/* Source Resources - Column 1 */}
-      <div className="min-w-0">
-        <div className="space-y-2">
+      <div className="min-w-0 h-full">
+        <div className="space-y-2 grid grid-cols-3">
           {mapping.sourceResources && mapping.sourceResources.length > 0 ? (
             <>
               {mapping.sourceResources
@@ -58,7 +61,7 @@ export function MappingCard({
                   >
                     <AwsIcon
                       resourceType={source.resourceType || "unknown"}
-                      size={20}
+                      size={40}
                       className="flex-shrink-0 mt-0.5"
                       fallback="lucide"
                     />
@@ -67,11 +70,15 @@ export function MappingCard({
                         className="font-medium text-sm leading-5 break-all"
                         title={source.resourceId}
                       >
-                        {source.resourceName || source.resourceId || "Unknown Resource"}
+                        {source.resourceName ||
+                          source.resourceId ||
+                          "Unknown Resource"}
                       </div>
                       <div className="mt-1 space-y-1">
                         <Badge variant="outline" className="text-xs">
-                          {formatAwsResourceType(source.resourceType || "unknown")}
+                          {formatAwsResourceType(
+                            source.resourceType || "unknown",
+                          )}
                         </Badge>
                         <br />
                         <Badge
@@ -102,7 +109,10 @@ export function MappingCard({
       {/* Mapping Direction - Column 2 */}
       <div className="flex flex-col items-center justify-center gap-3 py-4 min-h-[120px]">
         <TypeIcon className="h-6 w-6 text-muted-foreground" />
-        <Badge variant="outline" className={`text-xs text-center px-2 py-1 ${typeConfig.badge}`}>
+        <Badge
+          variant="outline"
+          className={`text-xs text-center px-2 py-1 ${typeConfig.badge}`}
+        >
           {typeConfig.label}
         </Badge>
         <Badge variant="outline" className="text-xs text-center px-2 py-1">
@@ -116,8 +126,8 @@ export function MappingCard({
       </div>
 
       {/* Target Resources - Column 3 */}
-      <div className="min-w-0">
-        <div className="space-y-2">
+      <div className="min-w-0 h-full">
+        <div className="space-y-2 grid grid-cols-3">
           {(mapping as any).targetResources ? (
             <>
               {(mapping as any).targetResources
@@ -129,7 +139,7 @@ export function MappingCard({
                   >
                     <AwsIcon
                       resourceType={target.resourceType}
-                      size={20}
+                      size={40}
                       className="flex-shrink-0 mt-0.5"
                       fallback="lucide"
                     />
@@ -161,38 +171,42 @@ export function MappingCard({
                 </div>
               )}
             </>
-          ) : mapping.targetResources?.map((targetResource, idx) => (
-            <div key={idx} className="flex items-center gap-2 min-w-0">
-              <AwsIcon
-                resourceType={targetResource?.resourceType || ""}
-                size={20}
-                className="flex-shrink-0"
-                fallback="lucide"
-              />
-              <div className="min-w-0 flex-1">
-                <div
-                  className="font-medium text-sm break-all"
-                  title={targetResource?.resourceId}
-                >
-                  {targetResource?.resourceName || targetResource?.resourceId}
-                </div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  <Badge variant="outline" className="text-xs">
-                    {targetResource?.resourceType &&
-                      formatAwsResourceType(targetResource?.resourceType)}
-                  </Badge>
+          ) : (
+            mapping.targetResources?.map((targetResource, idx) => (
+              <div key={idx} className="flex items-center gap-2 min-w-0">
+                <AwsIcon
+                  resourceType={targetResource?.resourceType || ""}
+                  size={20}
+                  className="flex-shrink-0"
+                  fallback="lucide"
+                />
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="font-medium text-sm break-all"
+                    title={targetResource?.resourceId}
+                  >
+                    {targetResource?.resourceName || targetResource?.resourceId}
+                  </div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Badge variant="outline" className="text-xs">
+                      {targetResource?.resourceType &&
+                        formatAwsResourceType(targetResource?.resourceType)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
-          )) || (
-            <div className="text-muted-foreground text-sm flex items-center gap-2">
-              <TypeIcon className="h-4 w-4" />
-              {typeConfig.label === "Deprecated" && "Resource marked as deprecated"}
-              {typeConfig.label === "For Removal" && "Resource marked for removal"}
-              {typeConfig.label === "Newly Added" && "Newly added resource"}
-              {typeConfig.label === "No Targets" && "No target resources"}
-              {typeConfig.label === "Standard" && "No target resources"}
-            </div>
+            )) || (
+              <div className="text-muted-foreground text-sm flex items-center gap-2">
+                <TypeIcon className="h-4 w-4" />
+                {typeConfig.label === "Deprecated" &&
+                  "Resource marked as deprecated"}
+                {typeConfig.label === "For Removal" &&
+                  "Resource marked for removal"}
+                {typeConfig.label === "Newly Added" && "Newly added resource"}
+                {typeConfig.label === "No Targets" && "No target resources"}
+                {typeConfig.label === "Standard" && "No target resources"}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -282,3 +296,4 @@ export function MappingCard({
     </div>
   );
 }
+
