@@ -1,6 +1,5 @@
 import { AwsIcon } from "@/components/ui/aws-icon";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MappingResource } from "@/hooks/use-mapping";
 import {
@@ -23,7 +22,6 @@ export interface ResourceMappingCardProps {
 import {
   ArrowRight,
   Clock,
-  ExternalLink,
   Link,
   Link2Off,
   AlertTriangle,
@@ -52,9 +50,6 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
   resource,
   isSelected,
   onSelect,
-  onUnmap,
-  suggestedMappings = [],
-  onViewDetails,
 }) => {
   const statusConfig = getMappingStatusConfig(
     resource.mappingStatus || "unmapped",
@@ -95,7 +90,7 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
 
         <div className="min-w-0 flex-1">
           {/* Resource Header */}
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-2 flex items-start gap-2">
             <AwsIcon
               resourceType={resource.resourceType}
               size={20}
@@ -108,25 +103,14 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
             >
               {resource.resourceName || resource.resourceId}
             </div>
-            <div className="flex items-center gap-1">
-              <StatusIcon
-                className={cn("h-4 w-4", {
-                  "text-green-600": statusConfig.color === "primary",
-                  "text-red-600": statusConfig.color === "destructive",
-                  "text-yellow-600": statusConfig.color === "secondary",
-                })}
-              />
-              <Badge
-                variant={
-                  statusConfig.color === "primary"
-                    ? "secondary"
-                    : (statusConfig.color as "destructive" | "secondary")
-                }
-                className="text-xs"
-              >
-                {statusConfig.label}
-              </Badge>
-            </div>
+            <div className="flex-1" />
+            <StatusIcon
+              className={cn("h-4 w-4", {
+                "text-green-600": statusConfig.color === "primary",
+                "text-red-600": statusConfig.color === "destructive",
+                "text-yellow-600": statusConfig.color === "secondary",
+              })}
+            />
           </div>
 
           {/* Resource Info */}
@@ -159,11 +143,11 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
           {/* Mapping Information */}
           {resource.mappingStatus === "mapped" &&
             resource.mappedToResourceName && (
-              <div className="mb-2 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-2">
+              <div className="mb-2 flex items-center gap-2 rounded-md border border-green-500/20 bg-green-500/5 p-2">
                 <ArrowRight className="h-4 w-4 text-green-600" />
                 <div className="min-w-0 flex-1">
                   <div
-                    className="font-medium text-green-900 text-sm break-all"
+                    className="font-medium text-green-500 text-sm break-all"
                     title={resource.mappedToResourceName}
                   >
                     Mapped to:{" "}
@@ -172,46 +156,6 @@ export const ResourceMappingCard: React.FC<ResourceMappingCardProps> = ({
                       ? `${resource.mappedToResourceName.substring(0, 35)}...`
                       : resource.mappedToResourceName}
                   </div>
-                  {resource.mappingNotes && (
-                    <div className="mt-1 text-green-700 text-xs">
-                      {resource.mappingNotes}
-                    </div>
-                  )}
-                  {resource.mappedAt && (
-                    <div className="mt-1 text-green-600 text-xs">
-                      Mapped on{" "}
-                      {new Date(resource.mappedAt).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          {/* Suggested Mappings */}
-          {resource.mappingStatus === "unmapped" &&
-            suggestedMappings.length > 0 && (
-              <div className="mb-2 rounded-md border border-blue-200 bg-blue-50 p-2">
-                <div className="mb-1 font-medium text-blue-900 text-sm">
-                  Suggested Mappings ({suggestedMappings.length})
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {suggestedMappings.slice(0, 3).map((suggestion) => (
-                    <span
-                      key={suggestion.resourceId}
-                      className="rounded bg-blue-100 px-2 py-1 text-blue-800 text-xs"
-                      title={suggestion.resourceName || suggestion.resourceId}
-                    >
-                      {(suggestion.resourceName || suggestion.resourceId)
-                        .length > 20
-                        ? `${(suggestion.resourceName || suggestion.resourceId).substring(0, 20)}...`
-                        : suggestion.resourceName || suggestion.resourceId}
-                    </span>
-                  ))}
-                  {suggestedMappings.length > 3 && (
-                    <span className="rounded bg-blue-100 px-2 py-1 text-blue-800 text-xs">
-                      +{suggestedMappings.length - 3} more
-                    </span>
-                  )}
                 </div>
               </div>
             )}
