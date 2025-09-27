@@ -677,7 +677,6 @@ export function useMapping(): UseMapping {
 						options?.notes ||
 						`Bulk mapped ${sourceResourceIds.length} source resources to ${targetResourceIds.length} target resources`,
 					priority: "medium",
-					category: "undecided",
 				});
 
 				toast.success(
@@ -826,10 +825,9 @@ export function useMapping(): UseMapping {
 					sourceResourceIds: resourceIds,
 					targetResourceIds: [], // Empty array for "Map to Nothing"
 					mappingDirection: "old_to_new",
-					mappingType: mappingType as any,
+					mappingType: mappingType === "removal" ? "to_be_removed" : mappingType as any,
 					notes: notes || `${resourceIds.length} resources marked for ${mappingType}`,
 					priority: "medium",
-					category: mappingType === "removal" ? "to_be_removed" : "deprecated",
 				});
 
 				toast.success(`${resourceIds.length} resources marked for ${mappingType}`);
@@ -854,7 +852,6 @@ export function useMapping(): UseMapping {
 					mappingType: "addition",
 					notes: notes || `${resourceIds.length} resources marked as newly added`,
 					priority: "medium",
-					category: "undecided",
 				});
 
 				toast.success(`${resourceIds.length} resources marked as newly added`);

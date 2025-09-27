@@ -1,14 +1,8 @@
 import {
   MAPPING_DIRECTION_VALUES,
-  MAPPING_TYPE_VALUES,
   MIGRATION_MAPPING_CATEGORY_VALUES,
   MIGRATION_PRIORITY_VALUES,
   MIGRATION_STATUS_VALUES,
-  type MappingDirection,
-  type MappingType,
-  type MigrationMappingCategory,
-  type MigrationPriority,
-  type MigrationStatus,
 } from "@/constants/migration";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
@@ -27,8 +21,6 @@ import {
   desc,
   eq,
   inArray,
-  isNull,
-  like,
   lt,
   notInArray,
   or,
@@ -94,7 +86,6 @@ export const migrationRouter = createTRPCRouter({
           .where(whereCondition),
       ]);
 
-      const total = totalResult[0]?.count ?? 0;
 
       // Fetch source and target resources for each mapping
       const mappingsWithResources = await Promise.all(
@@ -302,15 +293,12 @@ export const migrationRouter = createTRPCRouter({
           .enum(MAPPING_DIRECTION_VALUES as [string, ...string[]])
           .default("old_to_new"),
         mappingType: z
-          .enum(MAPPING_TYPE_VALUES as [string, ...string[]])
+          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
           .default("replacement"),
         notes: z.string().optional(),
         priority: z
           .enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]])
           .default("medium"),
-        category: z
-          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
-          .default("undecided"),
       }),
     )
     .mutation(async ({ input }) => {
@@ -321,12 +309,13 @@ export const migrationRouter = createTRPCRouter({
         mappingType,
         notes,
         priority,
-        category,
       } = input;
 
       // Validate that at least one of the arrays has elements
       if (sourceResourceIds.length === 0 && targetResourceIds.length === 0) {
-        throw new Error("At least one of sourceResourceIds or targetResourceIds must be provided");
+        throw new Error(
+          "At least one of sourceResourceIds or targetResourceIds must be provided",
+        );
       }
 
       // Get source resource details (skip if no sources for "Map from Nothing")
@@ -371,7 +360,7 @@ export const migrationRouter = createTRPCRouter({
               `Many-to-many mapping created with ${sourceResourceIds.length} source resources and ${targetResourceIds.length} target resources`,
             mappingDirection,
             priority,
-            category,
+            category: mappingType,
             notes,
             history: JSON.stringify([
               {
@@ -511,7 +500,7 @@ export const migrationRouter = createTRPCRouter({
           .enum(MAPPING_DIRECTION_VALUES as [string, ...string[]])
           .default("old_to_new"),
         mappingType: z
-          .enum(MAPPING_TYPE_VALUES as [string, ...string[]])
+          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
           .default("replacement"),
         notes: z.string().optional(),
         priority: z
@@ -637,7 +626,7 @@ export const migrationRouter = createTRPCRouter({
       z.object({
         targetResourceIds: z.array(z.string()).min(1),
         mappingType: z
-          .enum(MAPPING_TYPE_VALUES as [string, ...string[]])
+          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
           .default("addition"),
         notes: z.string().optional(),
         priority: z
@@ -781,7 +770,7 @@ export const migrationRouter = createTRPCRouter({
         mappingGroupId: z.string(),
         targetResourceIds: z.array(z.string()).min(1),
         mappingType: z
-          .enum(MAPPING_TYPE_VALUES as [string, ...string[]])
+          .enum(MIGRATION_MAPPING_CATEGORY_VALUES as [string, ...string[]])
           .default("replacement"),
         notes: z.string().optional(),
       }),
