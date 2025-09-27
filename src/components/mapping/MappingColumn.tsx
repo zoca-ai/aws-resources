@@ -16,6 +16,7 @@ interface MappingColumnProps {
   icon: React.ComponentType<{ className?: string }>;
   count: number;
   color?: "primary" | "destructive" | "secondary";
+  isLoading?: boolean;
 
   // Filter props
   searchTerm: string;
@@ -52,6 +53,7 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
   title,
   icon: Icon,
   count,
+  isLoading = false,
   searchTerm,
   onSearchChange,
   typeFilter,
@@ -87,7 +89,7 @@ export const MappingColumn: React.FC<MappingColumnProps> = ({
             <Icon className="h-5 w-5" />
             {title}
             <Badge variant="outline" className="ml-2">
-              {count}
+              {isLoading ? "Loading..." : count}
             </Badge>
           </CardTitle>
           {selectedOldResource && category === "new" && (

@@ -6,8 +6,7 @@ import { MappingListSkeleton } from "@/components/mapping/MappingSkeleton";
 import { MappingCard } from "@/components/mapping/MappingCard";
 import { MappingNotesDialog } from "@/components/mapping/MappingNotesDialog";
 import { api } from "@/trpc/react";
-import React, { useState, useMemo, useEffect } from "react";
-import { applyMappingFilters } from "@/lib/utils/mapping";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useMappingOperations } from "@/hooks/useMappingOperations";
 
 // Type for migration mapping from tRPC
@@ -24,7 +23,24 @@ import {
 import { MigrationNav } from "@/components/migration/MigrationNav";
 
 export default function MappingsListPage() {
-  // Use infinite query for better performance with large datasets
+  // Filters and search state
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [mappingTypeFilter, setMappingTypeFilter] = useState<string>("all");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("all");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+
+  // Debounce search input to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Use infinite query for better performance with large datasets with server-side filtering
   const {
     data: mappingsData,
     isLoading: mappingsLoading,
@@ -32,7 +48,15 @@ export default function MappingsListPage() {
     hasNextPage,
     isFetchingNextPage,
   } = api.migration.mappingsInfinite.useInfiniteQuery(
-    { limit: 50 }, // Smaller chunks for better infinite scroll performance
+    {
+      limit: 50,
+      search: debouncedSearch || undefined,
+      category: mappingTypeFilter !== "all" ? mappingTypeFilter : undefined,
+      resourceType:
+        resourceTypeFilter !== "all" ? resourceTypeFilter : undefined,
+      region: regionFilter !== "all" ? regionFilter : undefined,
+      dateFilter: dateFilter !== "all" ? dateFilter : undefined,
+    },
     {
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor;
@@ -68,27 +92,10 @@ export default function MappingsListPage() {
     handleUpdateMappingType,
   } = useMappingOperations();
 
-  // Flatten mappings from all pages
-  const mappings = useMemo(() => {
+  // Flatten mappings from all pages - no client-side filtering needed since it's done on server
+  const filteredMappings = useMemo(() => {
     return mappingsData?.pages.flatMap((page) => page.mappings) || [];
   }, [mappingsData]);
-
-  // Filters and search
-  const [search, setSearch] = useState("");
-  const [mappingTypeFilter, setMappingTypeFilter] = useState<string>("all");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("all");
-  const [regionFilter, setRegionFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("all");
-
-  // Apply filters using extracted utility
-  const filteredMappings = useMemo(() => {
-    return applyMappingFilters(mappings, {
-      search,
-      mappingTypeFilter,
-      resourceTypeFilter,
-      regionFilter,
-    });
-  }, [mappings, search, mappingTypeFilter, resourceTypeFilter, regionFilter]);
 
   // Statistics
 
@@ -107,12 +114,12 @@ export default function MappingsListPage() {
       <MigrationNav />
 
       {/* Filters and Actions */}
-      <Card className="mx-6 mt-6">
-        <CardContent className="pt-6">
+      <Card className="mt-6">
+        <CardContent className="">
           <div className="flex flex-col gap-4 lg:flex-row">
             {/* Search Bar */}
             <div className="relative max-w-sm flex-1">
-              <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-gray-400" />
+              <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
               <Input
                 placeholder="Search mappings..."
                 value={search}
@@ -137,7 +144,9 @@ export default function MappingsListPage() {
                   <SelectItem value="split">Split</SelectItem>
                   <SelectItem value="dependency">Dependency</SelectItem>
                   <SelectItem value="keep_manual">Keep Manual</SelectItem>
-                  <SelectItem value="migrate_terraform">Migrate to Terraform</SelectItem>
+                  <SelectItem value="migrate_terraform">
+                    Migrate to Terraform
+                  </SelectItem>
                   <SelectItem value="to_be_removed">To Be Removed</SelectItem>
                   <SelectItem value="deprecated">Deprecated</SelectItem>
                   <SelectItem value="undecided">Undecided</SelectItem>
@@ -192,17 +201,18 @@ export default function MappingsListPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-gray-600 text-sm">
+          <div className="flex items-center justify-between text-muted-foreground text-sm">
             <div>
-              {mappingsLoading
+              {mappingsLoading || hasNextPage
                 ? "Loading mappings..."
-                : `Showing ${filteredMappings.length} of ${mappings.length} mappings`}
+                : `Showing ${filteredMappings.length} mappings`}
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setSearch("");
+                setDebouncedSearch("");
                 setMappingTypeFilter("all");
                 setResourceTypeFilter("all");
                 setRegionFilter("all");
@@ -216,10 +226,10 @@ export default function MappingsListPage() {
       </Card>
 
       {/* Mappings List */}
-      <div className="flex-1 mx-6 mt-6 mb-6 overflow-hidden">
+      <div className="flex-1 mt-6 mb-6 overflow-hidden">
         <Card className="h-full">
           <CardContent className="pt-6 h-full">
-            {mappingsLoading && mappings.length === 0 ? (
+            {mappingsLoading && filteredMappings.length === 0 ? (
               <MappingListSkeleton count={10} />
             ) : filteredMappings.length > 0 ? (
               <div className="h-full overflow-y-auto space-y-4">
@@ -247,8 +257,8 @@ export default function MappingsListPage() {
                 )}
               </div>
             ) : (
-              <div className="py-12 text-center text-gray-500">
-                <BarChart3 className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+              <div className="py-12 text-center ">
+                <BarChart3 className="mx-auto mb-4 h-12 w-12 " />
                 <div className="mb-2 font-medium text-lg">
                   No mappings found
                 </div>

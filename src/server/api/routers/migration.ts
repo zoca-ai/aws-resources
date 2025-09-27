@@ -20,6 +20,8 @@ import {
   count,
   desc,
   eq,
+  gte,
+  ilike,
   inArray,
   lt,
   notInArray,
@@ -158,16 +160,24 @@ export const migrationRouter = createTRPCRouter({
         priority: z
           .enum(MIGRATION_PRIORITY_VALUES as [string, ...string[]])
           .optional(),
+        search: z.string().optional(),
+        resourceType: z.string().optional(),
+        region: z.string().optional(),
+        dateFilter: z.string().optional(),
         cursor: z.string().optional(),
         limit: z.number().min(1).max(250).default(50),
       }),
     )
     .query(async ({ input }) => {
-      const { status, category, priority, cursor, limit } = input;
+      const { status, category, priority, search, resourceType, region, dateFilter, cursor, limit } = input;
       console.log("mappingsInfinite API called with:", {
         status,
         category,
         priority,
+        search,
+        resourceType,
+        region,
+        dateFilter,
         cursor,
         limit,
       });
@@ -182,6 +192,26 @@ export const migrationRouter = createTRPCRouter({
       }
       if (priority) {
         conditions.push(eq(migrationMappings.priority, priority));
+      }
+
+      // Date filter - filter by days ago
+      if (dateFilter && dateFilter !== "all") {
+        const daysAgo = parseInt(dateFilter);
+        if (!isNaN(daysAgo)) {
+          const filterDate = new Date();
+          filterDate.setDate(filterDate.getDate() - daysAgo);
+          conditions.push(gte(migrationMappings.createdAt, filterDate));
+        }
+      }
+
+      // Search filter - will be applied to notes and mapping description
+      if (search) {
+        const searchConditions = [
+          ilike(migrationMappings.notes, `%${search}%`),
+          ilike(migrationMappings.mappingDescription, `%${search}%`),
+          ilike(migrationMappings.mappingName, `%${search}%`),
+        ];
+        conditions.push(or(...searchConditions));
       }
 
       // Apply cursor pagination
@@ -213,11 +243,45 @@ export const migrationRouter = createTRPCRouter({
         }
       }
 
-      // Build and execute the query
-      const baseQuery = db
-        .select()
-        .from(migrationMappings)
-        .orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
+      // Build base query with potential joins for resource filtering
+      let baseQuery = db
+        .select({
+          id: migrationMappings.id,
+          mappingGroupId: migrationMappings.mappingGroupId,
+          mappingName: migrationMappings.mappingName,
+          mappingDescription: migrationMappings.mappingDescription,
+          mappingDirection: migrationMappings.mappingDirection,
+          category: migrationMappings.category,
+          migrationStatus: migrationMappings.migrationStatus,
+          priority: migrationMappings.priority,
+          notes: migrationMappings.notes,
+          history: migrationMappings.history,
+          createdAt: migrationMappings.createdAt,
+          updatedAt: migrationMappings.updatedAt,
+          plannedDate: migrationMappings.plannedDate,
+          migratedDate: migrationMappings.migratedDate,
+          comparisonResults: migrationMappings.comparisonResults,
+        })
+        .from(migrationMappings);
+
+      // Add joins and additional filters for resource type and region
+      if (resourceType || region) {
+        baseQuery = baseQuery
+          .innerJoin(
+            migrationMappingSources,
+            eq(migrationMappingSources.mappingId, migrationMappings.id)
+          );
+
+        if (resourceType && resourceType !== "all") {
+          conditions.push(eq(migrationMappingSources.resourceType, resourceType));
+        }
+
+        if (region && region !== "all") {
+          conditions.push(eq(migrationMappingSources.region, region));
+        }
+      }
+
+      baseQuery = baseQuery.orderBy(desc(migrationMappings.createdAt), desc(migrationMappings.id));
 
       let mappingsList;
       try {
@@ -242,22 +306,31 @@ export const migrationRouter = createTRPCRouter({
       // Get source and target resources for each mapping
       const mappingsWithResources = await Promise.all(
         mappings.map(async (mapping) => {
-          // Get source resources
+          // Get source resources with all fields needed
           const sources = await db
             .select({
               resourceId: migrationMappingSources.resourceId,
               resourceName: migrationMappingSources.resourceName,
               resourceType: migrationMappingSources.resourceType,
+              resourceArn: migrationMappingSources.resourceArn,
+              region: migrationMappingSources.region,
+              awsAccountId: migrationMappingSources.awsAccountId,
+              category: migrationMappingSources.category,
             })
             .from(migrationMappingSources)
             .where(eq(migrationMappingSources.mappingId, mapping.id));
 
-          // Get target resources
+          // Get target resources with all fields needed
           const targets = await db
             .select({
               resourceId: migrationMappingTargets.resourceId,
               resourceName: migrationMappingTargets.resourceName,
               resourceType: migrationMappingTargets.resourceType,
+              resourceArn: migrationMappingTargets.resourceArn,
+              region: migrationMappingTargets.region,
+              awsAccountId: migrationMappingTargets.awsAccountId,
+              category: migrationMappingTargets.category,
+              mappingType: migrationMappingTargets.mappingType,
             })
             .from(migrationMappingTargets)
             .where(eq(migrationMappingTargets.mappingId, mapping.id));
@@ -270,6 +343,39 @@ export const migrationRouter = createTRPCRouter({
         }),
       );
 
+      // Apply additional client-side search filtering for resource names/IDs if needed
+      // This handles cases where search terms match resource names but the SQL search didn't catch them
+      let filteredMappings = mappingsWithResources;
+      if (search && !(resourceType || region)) {
+        // Only apply additional client-side filtering if we didn't already join with sources table
+        const searchLower = search.toLowerCase();
+        filteredMappings = mappingsWithResources.filter((mapping) => {
+          // Check if already matched in SQL search
+          const sqlMatched =
+            mapping.notes?.toLowerCase().includes(searchLower) ||
+            mapping.mappingDescription?.toLowerCase().includes(searchLower) ||
+            mapping.mappingName?.toLowerCase().includes(searchLower);
+
+          if (sqlMatched) return true;
+
+          // Check source resources
+          const sourceMatched = mapping.sourceResources?.some((source) =>
+            source.resourceName?.toLowerCase().includes(searchLower) ||
+            source.resourceId?.toLowerCase().includes(searchLower) ||
+            source.resourceType?.toLowerCase().includes(searchLower)
+          );
+
+          // Check target resources
+          const targetMatched = mapping.targetResources?.some((target) =>
+            target.resourceName?.toLowerCase().includes(searchLower) ||
+            target.resourceId?.toLowerCase().includes(searchLower) ||
+            target.resourceType?.toLowerCase().includes(searchLower)
+          );
+
+          return sourceMatched || targetMatched;
+        });
+      }
+
       // Generate next cursor
       let nextCursor: string | undefined;
       if (hasNextPage) {
@@ -278,7 +384,7 @@ export const migrationRouter = createTRPCRouter({
       }
 
       return {
-        mappings: mappingsWithResources,
+        mappings: filteredMappings,
         nextCursor,
       };
     }),
@@ -1075,16 +1181,26 @@ export const migrationRouter = createTRPCRouter({
 
   // Get unmapped resources
   unmapped: publicProcedure.query(async () => {
-    // Get all mapped resource IDs from the migrationMappingSources table
-    const mappedResourceIds = await db
-      .select({
-        resourceId: migrationMappingSources.resourceId,
-      })
-      .from(migrationMappingSources);
+    // Get all mapped resource IDs from both sources and targets tables
+    const [mappedSourceIds, mappedTargetIds] = await Promise.all([
+      db
+        .select({
+          resourceId: migrationMappingSources.resourceId,
+        })
+        .from(migrationMappingSources),
+      db
+        .select({
+          resourceId: migrationMappingTargets.resourceId,
+        })
+        .from(migrationMappingTargets),
+    ]);
 
-    const mappedIds = mappedResourceIds
-      .map((r) => r.resourceId)
-      .filter((id) => id !== "NEW_RESOURCE"); // Exclude special placeholder
+    const allMappedIds = [
+      ...mappedSourceIds.map((r) => r.resourceId),
+      ...mappedTargetIds.map((r) => r.resourceId),
+    ];
+
+    const mappedIds = allMappedIds.filter((id) => id !== "NEW_RESOURCE"); // Exclude special placeholder
 
     // Find resources not in mapping
     const unmappedResourcesQuery =

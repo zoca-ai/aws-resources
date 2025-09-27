@@ -181,7 +181,8 @@ export function useMapping(): UseMapping {
 		...(debouncedSearch?.trim() && { search: debouncedSearch }),
 		...(filters.type !== "all" && { type: filters.type }),
 		...(filters.region !== "all" && { region: filters.region }),
-	}), [debouncedSearch, filters.type, filters.region]);
+		...(filters.mappingStatus !== "all" && { mappingStatus: filters.mappingStatus }),
+	}), [debouncedSearch, filters.type, filters.region, filters.mappingStatus]);
 
 	const newQueryInput = useMemo(() => ({
 		category: "new" as const,
@@ -189,7 +190,8 @@ export function useMapping(): UseMapping {
 		...(debouncedSearch?.trim() && { search: debouncedSearch }),
 		...(filters.type !== "all" && { type: filters.type }),
 		...(filters.region !== "all" && { region: filters.region }),
-	}), [debouncedSearch, filters.type, filters.region]);
+		...(filters.mappingStatus !== "all" && { mappingStatus: filters.mappingStatus }),
+	}), [debouncedSearch, filters.type, filters.region, filters.mappingStatus]);
 
 	const mappingsQueryInput = useMemo(() => ({
 		limit: 100, // Load more mappings but still chunked
@@ -329,81 +331,45 @@ export function useMapping(): UseMapping {
 		return mappingsResponse?.pages.flatMap(page => page.mappings) || [];
 	}, [mappingsResponse]);
 
-	// Transform resources with mapping status
+	// Transform resources with mapping metadata (mapping status is now determined server-side)
 	const transformResourcesWithMappingStatus = useCallback(
 		(resourceList: Resource[]): MappingResource[] => {
 			if (!resourceList) return [];
 
-			const mappedAsSourceIds = new Set(
-				mappings.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
-			);
-			// Also track resources that are mapped as targets
-			const mappedAsTargetIds = new Set(
-				mappings.flatMap(
-					(m) =>
-						(m as any).targetResources?.map((t: any) => t.resourceId) || [],
-				),
-			);
-			const allMappedResourceIds = new Set([
-				...mappedAsSourceIds,
-				...mappedAsTargetIds,
-			]);
+			// Since server-side filtering handles mapping status, we only need to add mapping metadata
 			const pendingResourceIds = new Set(
 				globalState.pendingMappings.map((m) => m.oldResourceId),
 			);
 
-			// Track special mapping types
-			const deprecatedResourceIds = new Set(
-				mappings
-					.filter((m) => (m as any).mappingType === "deprecation")
-					.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
-			);
-			const removalResourceIds = new Set(
-				mappings
-					.filter((m) => (m as any).mappingType === "removal")
-					.flatMap((m) => m.sourceResources?.map(s => s.resourceId) || []),
-			);
-			const newlyAddedResourceIds = new Set(
-				mappings
-					.filter((m) => m.sourceResources?.some(s => s.resourceId === "NEW_RESOURCE"))
-					.flatMap(
-						(m) =>
-							(m as any).targetResources?.map((t: any) => t.resourceId) || [],
-					),
-			);
-
 			return resourceList.map(
-				(resource): MappingResource => ({
-					...resource,
-					mappingStatus: pendingResourceIds.has(resource.resourceId)
+				(resource): MappingResource => {
+					// Find mapping for this resource (as source or target)
+					const relatedMapping = mappings.find((m) =>
+						m.sourceResources?.some(s => s.resourceId === resource.resourceId) ||
+						(m as any).targetResources?.some((t: any) => t.resourceId === resource.resourceId)
+					);
+
+					// Determine status: pending overrides server filtering, otherwise assume server got it right
+					const mappingStatus: MappingStatus = pendingResourceIds.has(resource.resourceId)
 						? "pending"
-						: deprecatedResourceIds.has(resource.resourceId)
-							? "deprecated"
-							: removalResourceIds.has(resource.resourceId)
-								? "removal"
-								: newlyAddedResourceIds.has(resource.resourceId)
-									? "newly_added"
-									: allMappedResourceIds.has(resource.resourceId)
-										? "mapped"
-										: "unmapped",
-					mappedToResourceId: mappings
-						.find((m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId))
-						?.id?.toString(),
-					mappedToResourceName: mappings.find(
-						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
-					)?.sourceResources?.[0]?.resourceName || undefined,
-					mappingNotes: mappings.find(
-						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
-					)?.notes || undefined,
-					mappedAt: mappings.find(
-						(m) => m.sourceResources?.some(s => s.resourceId === resource.resourceId),
-					)?.createdAt?.toISOString(),
-					mappedBy: "user", // Default for now
-					confidence: 90, // Default confidence
-				}),
+						: filters.mappingStatus !== "all"
+							? filters.mappingStatus as MappingStatus // Trust server filtering
+							: relatedMapping ? "mapped" : "unmapped"; // Fallback logic
+
+					return {
+						...resource,
+						mappingStatus,
+						mappedToResourceId: relatedMapping?.id?.toString(),
+						mappedToResourceName: relatedMapping?.sourceResources?.[0]?.resourceName || undefined,
+						mappingNotes: relatedMapping?.notes || undefined,
+						mappedAt: relatedMapping?.createdAt?.toISOString(),
+						mappedBy: "user", // Default for now
+						confidence: 90, // Default confidence
+					};
+				}
 			);
 		},
-		[mappings, globalState.pendingMappings],
+		[mappings, globalState.pendingMappings, filters.mappingStatus],
 	);
 
 	// Categorized resources with mapping status
@@ -441,18 +407,10 @@ export function useMapping(): UseMapping {
 		newResources.length, hasNextNewPage, isFetchingNextNewPage, fetchNextNewPage
 	]);
 
-	// Filtered resources (apply additional filtering beyond API)
+	// Since we're using server-side filtering, filteredResources is just allResources
 	const filteredResources = useMemo(() => {
-		return allResources.filter((resource) => {
-			if (
-				filters.mappingStatus !== "all" &&
-				resource.mappingStatus !== filters.mappingStatus
-			) {
-				return false;
-			}
-			return true;
-		});
-	}, [allResources, filters.mappingStatus]);
+		return allResources;
+	}, [allResources]);
 
 	// Get unique values for filters
 	const uniqueTypes = useMemo(
