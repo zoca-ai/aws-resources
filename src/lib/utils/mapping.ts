@@ -95,6 +95,13 @@ export const getMappingTypeConfig = (mapping: any): MappingTypeConfig => {
         badge: "bg-pink-50 text-pink-700 border-pink-100",
         label: "Chrone",
       };
+    case "addition":
+      return {
+        icon: Plus,
+        color: "border-emerald-300 border-2",
+        badge: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        label: "Addition",
+      };
     case "undecided":
     default:
       return {

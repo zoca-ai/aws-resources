@@ -122,6 +122,12 @@ const MAPPING_TYPES = [
     icon: Timer,
     description: "Chronological migration category",
   },
+  {
+    value: "addition",
+    label: "Addition",
+    icon: Plus,
+    description: "New resource addition to infrastructure",
+  },
 ];
 
 const MAPPING_DIRECTIONS = [

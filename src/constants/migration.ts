@@ -38,6 +38,7 @@ export const MIGRATION_MAPPING_CATEGORIES = {
   UNDECIDED: "undecided",
   STAGING: "staging",
   CHRONE: "chrone",
+  ADDITION: "addition",
 } as const;
 
 export const MIGRATION_MAPPING_CATEGORY_VALUES = Object.values(

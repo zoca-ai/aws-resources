@@ -45,7 +45,7 @@ export function MappingCard({
       case "Staging":
         return "Resource staged for migration";
       case "Chrone":
-        return "Chronological migration category";
+        return "Chrone resource do not touch";
       default:
         return "No target resources";
     }
@@ -60,7 +60,7 @@ export function MappingCard({
         <ResourceDisplay
           resources={mapping.sourceResources || []}
           maxVisible={5}
-          emptyStateMessage="No source resources"
+          emptyStateMessage="Newly added resource"
           emptyStateIcon={TypeIcon}
         />
       </div>

@@ -18,23 +18,13 @@ export default function MappingPage() {
 
   // Set default filter to unmapped for mapping page
   useEffect(() => {
-    mapping.updateFilter("mappingStatus", "unmapped");
+    mapping.updateFilter("old", "mappingStatus", "unmapped");
+    mapping.updateFilter("new", "mappingStatus", "unmapped");
   }, []);
 
-  // Use mapping hook's filters for consistency with API calls
-  const oldFilters = {
-    search: mapping.filters.search,
-    type: mapping.filters.type,
-    region: mapping.filters.region,
-    mappingStatus: mapping.filters.mappingStatus,
-  };
-
-  const newFilters = {
-    search: mapping.filters.search,
-    type: mapping.filters.type,
-    region: mapping.filters.region,
-    mappingStatus: mapping.filters.mappingStatus,
-  };
+  // Use mapping hook's separate filters
+  const oldFilters = mapping.filters.old;
+  const newFilters = mapping.filters.new;
 
   // Use server-side filtered resources directly from the mapping hook
   const filteredOldResources = mapping.categorizedResources.old || [];
@@ -61,7 +51,7 @@ export default function MappingPage() {
     }
     // Preload more new resources when user is actively searching
     if (
-      mapping.filters.search &&
+      mapping.filters.new.search &&
       mapping.hasNextPage.new &&
       !mapping.isFetchingNextPage.new
     ) {
@@ -84,7 +74,7 @@ export default function MappingPage() {
     }
   }, [
     selectedOldResources.length,
-    mapping.filters.search,
+    mapping.filters.new.search,
     filteredOldResources.length,
     filteredNewResources.length,
     mapping.hasNextPage,
@@ -183,7 +173,6 @@ export default function MappingPage() {
           await Promise.all(mappingPromises);
         }
       }
-
     } catch (error) {
       console.error("Failed to create mappings:", error);
       throw error; // Re-throw so BulkMappingActions knows the operation failed
@@ -215,20 +204,26 @@ export default function MappingPage() {
           color="destructive"
           isLoading={mapping.loading.resources || mapping.hasNextPage.old}
           searchTerm={oldFilters.search}
-          onSearchChange={(value) => mapping.updateFilter("search", value)}
+          onSearchChange={(value) =>
+            mapping.updateFilter("old", "search", value)
+          }
           typeFilter={oldFilters.type}
-          onTypeFilterChange={(value) => mapping.updateFilter("type", value)}
+          onTypeFilterChange={(value) =>
+            mapping.updateFilter("old", "type", value)
+          }
           regionFilter={oldFilters.region}
-          onRegionFilterChange={(value) => mapping.updateFilter("region", value)}
+          onRegionFilterChange={(value) =>
+            mapping.updateFilter("old", "region", value)
+          }
           mappingStatusFilter={oldFilters.mappingStatus}
           onMappingStatusFilterChange={(value) =>
-            mapping.updateFilter("mappingStatus", value)
+            mapping.updateFilter("old", "mappingStatus", value)
           }
           uniqueTypes={mapping.uniqueTypes}
           uniqueRegions={mapping.uniqueRegions}
           onClearFilters={() => {
             mapping.clearFilters();
-            mapping.updateFilter("mappingStatus", "unmapped");
+            mapping.updateFilter("old", "mappingStatus", "unmapped");
           }}
           resources={filteredOldResources}
           selectedResources={new Set(selectedOldResources)}
@@ -264,20 +259,26 @@ export default function MappingPage() {
           color="primary"
           isLoading={mapping.loading.resources || mapping.hasNextPage.new}
           searchTerm={newFilters.search}
-          onSearchChange={(value) => mapping.updateFilter("search", value)}
+          onSearchChange={(value) =>
+            mapping.updateFilter("new", "search", value)
+          }
           typeFilter={newFilters.type}
-          onTypeFilterChange={(value) => mapping.updateFilter("type", value)}
+          onTypeFilterChange={(value) =>
+            mapping.updateFilter("new", "type", value)
+          }
           regionFilter={newFilters.region}
-          onRegionFilterChange={(value) => mapping.updateFilter("region", value)}
+          onRegionFilterChange={(value) =>
+            mapping.updateFilter("new", "region", value)
+          }
           mappingStatusFilter={newFilters.mappingStatus}
           onMappingStatusFilterChange={(value) =>
-            mapping.updateFilter("mappingStatus", value)
+            mapping.updateFilter("new", "mappingStatus", value)
           }
           uniqueTypes={mapping.uniqueTypes}
           uniqueRegions={mapping.uniqueRegions}
           onClearFilters={() => {
             mapping.clearFilters();
-            mapping.updateFilter("mappingStatus", "unmapped");
+            mapping.updateFilter("new", "mappingStatus", "unmapped");
           }}
           resources={filteredNewResources}
           selectedResources={new Set(selectedNewResources)}
