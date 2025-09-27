@@ -138,6 +138,8 @@ export default function MappingsListPage() {
                   <SelectItem value="deprecation">Deprecated</SelectItem>
                   <SelectItem value="removal">For Removal</SelectItem>
                   <SelectItem value="addition">Newly Added</SelectItem>
+                  <SelectItem value="staging">Staging</SelectItem>
+                  <SelectItem value="chrone">Chrone</SelectItem>
                 </SelectContent>
               </Select>
 

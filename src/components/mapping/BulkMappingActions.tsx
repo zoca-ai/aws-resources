@@ -32,6 +32,8 @@ import {
   Split,
   Trash2,
   X,
+  Clock,
+  Timer,
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
@@ -99,6 +101,18 @@ const MAPPING_TYPES = [
     label: "Addition",
     icon: Plus,
     description: "Newly added resource with no legacy equivalent",
+  },
+  {
+    value: "staging",
+    label: "Staging",
+    icon: Clock,
+    description: "Resource staged for future migration",
+  },
+  {
+    value: "chrone",
+    label: "Chrone",
+    icon: Timer,
+    description: "Chronological migration category",
   },
 ];
 
