@@ -31,6 +31,8 @@ import {
   Split,
   Timer,
   Tags,
+  Hand,
+  FileText,
 } from "lucide-react";
 
 interface MappingCardProps {
@@ -280,46 +282,34 @@ export function MappingCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "replacement")}
+              onClick={() => onUpdateMappingType(mapping.id as any, "keep_manual")}
             >
-              <Shuffle className="mr-2 h-4 w-4" />
-              Replacement
+              <Hand className="mr-2 h-4 w-4" />
+              Keep Manual
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "consolidation")}
-            >
-              <Merge className="mr-2 h-4 w-4" />
-              Consolidation
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "split")}
-            >
-              <Split className="mr-2 h-4 w-4" />
-              Split
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "dependency")}
+              onClick={() => onUpdateMappingType(mapping.id as any, "migrate_terraform")}
             >
               <GitBranch className="mr-2 h-4 w-4" />
-              Dependency
+              Migrate to Terraform
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "deprecation")}
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Deprecation
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "removal")}
+              onClick={() => onUpdateMappingType(mapping.id as any, "to_be_removed")}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Removal
+              To Be Removed
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onUpdateMappingType(mapping.id as any, "addition")}
+              onClick={() => onUpdateMappingType(mapping.id as any, "deprecated")}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Addition
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Deprecated
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onUpdateMappingType(mapping.id as any, "undecided")}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Undecided
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onUpdateMappingType(mapping.id as any, "staging")}

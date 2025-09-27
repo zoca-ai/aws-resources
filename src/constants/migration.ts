@@ -32,6 +32,8 @@ export const MIGRATION_MAPPING_CATEGORIES = {
 	TO_BE_REMOVED: "to_be_removed",
 	DEPRECATED: "deprecated",
 	UNDECIDED: "undecided",
+	STAGING: "staging",
+	CHRONE: "chrone",
 } as const;
 
 export const MIGRATION_MAPPING_CATEGORY_VALUES = Object.values(

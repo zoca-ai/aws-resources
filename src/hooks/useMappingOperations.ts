@@ -99,7 +99,7 @@ export function useMappingOperations() {
     try {
       await updateMapping.mutateAsync({
         id: mappingId,
-        mappingType: newMappingType as any,
+        category: newMappingType as any,
       });
       toast.success(`Mapping type updated to ${newMappingType}`);
     } catch (error) {
